@@ -1,5 +1,6 @@
 import time
-from models.groq import model
+from helpers.formatter import get_content_only
+from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
 
@@ -43,9 +44,11 @@ def get_description(name, artist, reviews, lyrics) -> dict:
             SystemMessage(content=system_instructions),
             HumanMessage(content=user_input)
         ])
-        return {"description": str(response.content)}
+
+        content_str = str(response.content)
+        description = get_content_only(content_str)
+        return {"description": description}
     except Exception as e:
         print(f"Error generating vibe description for {name} by {artist}. Error: {e}")
         raise e
-
 

@@ -2,7 +2,8 @@
 import time
 
 from langsmith import traceable
-from models.groq import model
+from helpers.formatter import get_content_only
+from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from state.subgraph_state import SubgraphState
@@ -36,7 +37,9 @@ def get_refined_description(name, artist, vibe_description, critique) -> str:
             SystemMessage(content=system_instructions),
             HumanMessage(content=user_input)
         ])
-        return str(response.content)
+        # remove reasoning from the model's response if it includes a <think>...</think> block, leaving only the content
+        content = get_content_only(str(response.content))
+        return content
     except Exception as e:
         print(f"Error refining vibe description for {name} by {artist}. Error: {e}")
         raise e

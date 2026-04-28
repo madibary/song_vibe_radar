@@ -2,10 +2,14 @@ from typing import cast
 from state.agent_state import AgentState
 from graphs.main_graph import graph    
 
+# Prompt user for initial input
+track_name = input("Enter the reference track name: ")
+artist_name = input("Enter the artist name: ")
+
 initial_state = {
     "reference_track": {
-        "name": "Blue Jeans",
-        "artist": "Hana"
+        "name": track_name,
+        "artist": artist_name
     }
 }
 

@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import uuid
+import sys
 
 from state.agent_state import AgentState
 
@@ -18,10 +19,22 @@ def get_song_recommendations(state: AgentState):
         print(errh.args[0])
         return {"unsorted_songs": {}}
     track_data = json.loads(response.text)
+
+    # Ensure 'similartracks' and 'track' exist and are non-empty before using them
+    if (
+        not isinstance(track_data, dict)
+        or "similartracks" not in track_data
+        or not isinstance(track_data["similartracks"], dict)
+        or "track" not in track_data["similartracks"]
+        or not track_data["similartracks"]["track"]
+    ):
+        # No recommendations found; inform the user and exit the program
+        print(f"No recommendations found for '{track_name}' by '{artist_name}'. Exiting.")
+        sys.exit(0)
+
     result_tracks = track_data["similartracks"]["track"]
     reduced_tracks = {}
-    # to use less tokens
     for track in result_tracks:
         id = str(uuid.uuid4())
-        reduced_tracks[id] = {"id": id, "name": track["name"], "artist": track["artist"]["name"]}
+        reduced_tracks[id] = {"id": id, "name": track.get("name"), "artist": track.get("artist", {}).get("name")}
     return {"unsorted_songs": reduced_tracks}
