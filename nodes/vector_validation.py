@@ -1,22 +1,20 @@
 from state.agent_state import AgentState
 from sentence_transformers import SentenceTransformer
 
-from nodes.vibe_analyzer import get_description
-
 embeddings_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
 
 def validate_by_vectors(state: AgentState):
     reference_track = state["reference_track"]
-    response = get_description(reference_track["name"], reference_track["artist"], reference_track["reviews"], reference_track["lyrics"])
-    first_song_desc = response["description"]
+    first_song_desc = str(reference_track.get("vibe_description"))
+    print(f"First song description: {first_song_desc}")
     first_song_vector = embeddings_model.encode(first_song_desc)
+
     highest_song_desc_id = None
     highest_score = 0
 
     songs = state["unsorted_songs"].copy()
     unsorted_list = []
     
-    print(f"First song description: {first_song_desc}")
     for song_id in state["unsorted_songs"]:
         song_data = state["unsorted_songs"][song_id]
         unsorted_list.append(song_data)
@@ -36,8 +34,8 @@ def validate_by_vectors(state: AgentState):
 
     best_match = state["unsorted_songs"][highest_song_desc_id]
     sorted_songs = sorted(unsorted_list, key=lambda x: x['score'], reverse=True)
-    print(f"Best match: {best_match["name"]} by {best_match["artist"]}.\n vibe:{best_match["vibe_description"]} \n")
     for index, song in enumerate(sorted_songs):
         print(f"{index+1}. {song["name"]} by {song["artist"]}. Score: {song["score"]}")
+        print(f"vibe description: {song.get("vibe_description", "No vibe description available")}\n")
     return {"unsorted_songs": songs, "best_match": best_match, "sorted_songs": sorted_songs}
 

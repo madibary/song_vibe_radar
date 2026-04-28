@@ -1,7 +1,8 @@
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from state.agent_state import AgentState
 from state.subgraph_state import SubgraphState
-from models.stepfun import model
+from models.evaluation import model
 
 
 
@@ -38,6 +39,22 @@ def evaluate_vibe_description(state: SubgraphState):
         *recent_messages
         ])
         return {"messages": [response]}
+
+    except Exception as e:
+        print(f"Error evaluating description of {song['name']} by {song['artist']}: {e}")
+        #raise e
+        return ""
+
+def evaluate_reference_vibe_description(state: AgentState):
+    song = state["reference_track"]
+    system_prompt = SystemMessage(content=system_instructions)
+    song_context = HumanMessage(content=f"Vibe Description: {song['vibe_description']}")
+    try:
+        response = model.invoke([
+        system_prompt,
+        song_context
+        ])
+        return {"reference_critique": response.content}
 
     except Exception as e:
         print(f"Error evaluating description of {song['name']} by {song['artist']}: {e}")

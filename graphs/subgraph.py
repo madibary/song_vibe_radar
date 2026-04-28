@@ -3,7 +3,7 @@ from nodes.evaluation import evaluate_vibe_description
 from nodes.process_song import process_song
 from state.subgraph_state import SubgraphState
 from tools.tools import get_word_count
-from nodes.refine_vibe import refine_vibe
+from nodes.refine_recommendation_vibe import refine_vibe
 from langgraph.prebuilt import ToolNode
 from langgraph.types import RetryPolicy
 from langchain_core.messages import AIMessage

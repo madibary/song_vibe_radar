@@ -1,7 +1,7 @@
 import re
 
 # remove reasoning from the model's response if it includes a <think>...</think> block, leaving only the content
-def get_content_only(description: str) -> str:
+def parse_content(description: str) -> str:
     # If the model prepends a <think>...reasoning...</think> block, strip it
     parts = re.split(r"</think\s*>", description, maxsplit=1)
     if len(parts) > 1:

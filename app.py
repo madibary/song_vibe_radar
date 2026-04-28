@@ -10,7 +10,9 @@ initial_state = {
     "reference_track": {
         "name": track_name,
         "artist": artist_name
-    }
+    },
+    "reference_iterations": 0,
+    "reference_critique": ""
 }
 
 for state in graph.stream(cast(AgentState, initial_state), stream_mode="values"):

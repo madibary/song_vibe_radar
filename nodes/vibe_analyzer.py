@@ -1,5 +1,5 @@
 import time
-from helpers.formatter import get_content_only
+from helpers.formatter import parse_content
 from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
@@ -46,7 +46,7 @@ def get_description(name, artist, reviews, lyrics) -> dict:
         ])
 
         content_str = str(response.content)
-        description = get_content_only(content_str)
+        description = parse_content(content_str)
         return {"description": description}
     except Exception as e:
         print(f"Error generating vibe description for {name} by {artist}. Error: {e}")
