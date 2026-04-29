@@ -7,12 +7,18 @@ class SongRecommendationsOutput(TypedDict):
     error: NotRequired[str]
 
 
-class EvaluationOutput(TypedDict):
+class EvaluationNodeOutput(TypedDict):
     messages: List[BaseMessage]
 
 
+class ModelEvaluationResult(TypedDict):
+    score: float
+    is_passing: bool
+    feedback: str
+
+
 class ReferenceEvaluationOutput(TypedDict):
-    reference_critique: str
+    reference_critique: ModelEvaluationResult
 
 
 class DescriptionOutput(TypedDict):

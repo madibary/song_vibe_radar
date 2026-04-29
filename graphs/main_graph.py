@@ -15,9 +15,14 @@ def should_continue_evaluation_loop(state: AgentState):
         return "end"
 
     critique = state.get("reference_critique", "")
-    if "APPROVED" in critique:
-        return "end"
-    
+    # `reference_critique` should be a structured dict from the evaluator
+    if isinstance(critique, dict):
+        try:
+            if critique.get("is_passing") or float(critique.get("score", 0)) >= 7:
+                return "end"
+        except Exception:
+            pass
+
     return "refine"
 
 

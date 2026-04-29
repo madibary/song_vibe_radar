@@ -7,12 +7,14 @@ from nodes.refine_vibe import refine_recommendation_vibe
 from langgraph.prebuilt import ToolNode
 from langgraph.types import RetryPolicy
 from langchain_core.messages import AIMessage
+from langchain_core.messages import BaseMessage
+import json
 
 tool_node = ToolNode([get_word_count], handle_tool_errors=True)
 
 def should_continue_evaluation_loop(state: SubgraphState):
     messages = state["messages"]
-    last_message = messages[-1]
+    last_message: BaseMessage = messages[-1]
     
     if state.get("iterations", 0) > 1:
         return "end"
@@ -21,10 +23,20 @@ def should_continue_evaluation_loop(state: SubgraphState):
             return "tools"
 
     content = last_message.content
-    if "APPROVED" in content:
-        return "end"
     
-    # If it's not a tool call and not an approval, it's a critique.
+    if not isinstance(content, str):
+        return "refine"
+    
+    parsed = json.loads(content)   
+
+    if isinstance(parsed, dict):
+        is_passing = parsed.get("is_passing")
+        score = parsed.get("score")
+        if bool(is_passing) or (score is not None and float(score) >= 7):
+            return "end"
+
+
+    # If it's not a structured passing evaluation, treat as a critique to refine.
     return "refine"
 
 

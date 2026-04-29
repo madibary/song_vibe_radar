@@ -10,22 +10,23 @@ logger = logging.getLogger(__name__)
 system_instructions = """
 ### REFINEMENT TASK
 You are a precision editor. You previously generated a song vibe description that was rejected by the Musicologist Judge. 
-
-### ORIGINAL VERSION
-{original_description}
-
-### CRITIQUE RECEIVED
-{judge_critique}
+Your task is to revise the original description to address the specific critiques provided by the judge, while preserving the core mood and energy of the original.
 
 ### REFINEMENT RULES
-1. **Preserve the Core:** Keep the unique mood and energy identified in the original.
-2. **Apply Corrections:** Address every specific failure point mentioned in the critique.
-3. **Hard Constraints:** - Word count MUST be between 55 and 75. 
-   - Use objective technical descriptors (e.g., "staccato," "reverb-heavy," "syncopated").
-    - Maintain the 4-sentence structure.
+    1. **Preserve the Core:** Keep the unique mood and energy identified in the original.
+    2. **Apply Corrections:** Address every specific failure point mentioned in the critique.
+    3. **Hard Constraints:** - Word count MUST be between 55 and 75. 
+    - Use objective technical descriptors (e.g., "staccato," "reverb-heavy," "syncopated").
+        - Maintain the 4-sentence structure.
 
-### OUTPUT
-Provide only the refined description. Do not include introductory text like "Here is the revised version."""
+    ### INPUT DATA
+    Lyrics: {lyrics}
+    Reviews: {reviews}
+    Original Description: {vibe_description}
+    Judge Critique: {judge_critique}
+    
+    ### OUTPUT
+    Provide only the refined description. Do not include introductory text like "Here is the revised version."""
 
 @traceable
 def get_refined_description(name, artist, vibe_description, critique) -> str:
