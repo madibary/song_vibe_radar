@@ -3,7 +3,7 @@ from nodes.evaluation import evaluate_vibe_description
 from nodes.process_song import process_song
 from state.subgraph_state import SubgraphState
 from tools.tools import get_word_count
-from nodes.refine_recommendation_vibe import refine_vibe
+from nodes.refine_vibe import refine_recommendation_vibe
 from langgraph.prebuilt import ToolNode
 from langgraph.types import RetryPolicy
 from langchain_core.messages import AIMessage
@@ -32,7 +32,7 @@ def should_continue_evaluation_loop(state: SubgraphState):
 subgraph_builder = StateGraph(SubgraphState)
 
 subgraph_builder.add_node("process_song", process_song, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
-subgraph_builder.add_node("refine_vibe", refine_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
+subgraph_builder.add_node("refine_vibe", refine_recommendation_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 subgraph_builder.add_node("reflect", evaluate_vibe_description, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 subgraph_builder.add_node("tools", tool_node)
 

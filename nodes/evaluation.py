@@ -1,9 +1,15 @@
 
-from langchain_core.messages import HumanMessage, SystemMessage
+import logging
+import re
+from langchain_core.messages import convert_to_messages
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from state.agent_state import AgentState
 from state.subgraph_state import SubgraphState
+from state.node_outputs import EvaluationOutput, ReferenceEvaluationOutput
 from models.evaluation import model
 
+
+logger = logging.getLogger(__name__)
 
 
 system_instructions = """
@@ -27,36 +33,54 @@ system_instructions = """
 """
 
 
-def evaluate_vibe_description(state: SubgraphState):
+def evaluate_vibe_description(state: SubgraphState) -> EvaluationOutput:
     song = state["song_data"][0]
     system_prompt = SystemMessage(content=system_instructions)
     song_context = HumanMessage(content=f"Vibe Description: {song['vibe_description']}")
-    recent_messages = state["messages"][-6:]  # Only send the last 6 messages to keep it clean
+    # Only send the last 6 messages to keep it clean
+    messages = convert_to_messages(state["messages"])
+    recent_messages = messages[-6:]
     try:
         response = model.invoke([
-        system_prompt,
-        song_context,
-        *recent_messages
+            system_prompt,
+            song_context,
+            *recent_messages
         ])
-        return {"messages": [response]}
+
+        # Extract textual content safely
+        content = getattr(response, "content", response)
+        content_str = str(content).strip()
+
+        # Normalize APPROVED exactly
+        if content_str.upper() == "APPROVED":
+            return {"messages": [AIMessage(content="APPROVED")]}
+
+        # Validate critique: max 30 words
+        words = re.findall(r"\S+", content_str)
+        if len(words) > 30:
+            logger.warning("Evaluation critique too long (%d words); truncating.", len(words))
+            content_str = " ".join(words[:30])
+
+        return {"messages": [AIMessage(content=content_str)]}
 
     except Exception as e:
-        print(f"Error evaluating description of {song['name']} by {song['artist']}: {e}")
-        #raise e
-        return ""
+        logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
+        # Return a safe, consistent shape so the graph can continue or retry
+        return {"messages": [AIMessage(content="ERROR: evaluation failed")]}
 
-def evaluate_reference_vibe_description(state: AgentState):
+def evaluate_reference_vibe_description(state: AgentState) -> ReferenceEvaluationOutput:
     song = state["reference_track"]
     system_prompt = SystemMessage(content=system_instructions)
     song_context = HumanMessage(content=f"Vibe Description: {song['vibe_description']}")
     try:
         response = model.invoke([
-        system_prompt,
-        song_context
+            system_prompt,
+            song_context,
         ])
-        return {"reference_critique": response.content}
+        content = getattr(response, "content", response)
+        content_str = str(content).strip()
+        return {"reference_critique": content_str}
 
     except Exception as e:
-        print(f"Error evaluating description of {song['name']} by {song['artist']}: {e}")
-        #raise e
-        return ""
+        logger.exception("Error evaluating reference description of %s by %s", song.get("name"), song.get("artist"))
+        return {"reference_critique": "ERROR: evaluation failed"}

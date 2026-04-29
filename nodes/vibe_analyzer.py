@@ -1,8 +1,12 @@
 import time
+import logging
 from helpers.formatter import parse_content
 from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
+from state.node_outputs import DescriptionOutput
 from langsmith import traceable
+
+logger = logging.getLogger(__name__)
 
 
 system_instructions = """
@@ -18,7 +22,7 @@ system_instructions = """
 
     
     ### CONSTRAINTS
-    - Do NOT use the song title or artist name in the description.
+    - Do NOT use the song title, artist name or song BPM in the description.
     - Do NOT use emojis, numbers or special symbols. 
     - Use objective descriptors (e.g., "reverberant," "distorted," "staccato") over subjective ones ("good," "great").
     - Maintain a clinical yet descriptive tone to ensure high-quality vector embeddings.
@@ -26,8 +30,6 @@ system_instructions = """
     - Do NOT specify the word count.
 
     ### INPUT DATA
-    Song Title: {title}
-    Artist: {artist}
     Reviews: {reviews}
     Lyrics: {lyrics}
 
@@ -36,8 +38,8 @@ system_instructions = """
     """
 
 @traceable
-def get_description(name, artist, reviews, lyrics) -> dict:
-    user_input = f"Song Title: {name}\nArtist: {artist}\nReviews: {reviews} \nLyrics: {lyrics}"
+def get_description(name, artist, reviews, lyrics) -> DescriptionOutput:
+    user_input = f"Reviews: {reviews} \nLyrics: {lyrics}"
     time.sleep(2)
     try:
         response = model.invoke([
@@ -49,6 +51,6 @@ def get_description(name, artist, reviews, lyrics) -> dict:
         description = parse_content(content_str)
         return {"description": description}
     except Exception as e:
-        print(f"Error generating vibe description for {name} by {artist}. Error: {e}")
-        raise e
+        logger.exception("Error generating vibe description for %s by %s", name, artist)
+        raise
 

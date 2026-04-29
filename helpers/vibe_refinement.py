@@ -1,8 +1,11 @@
 import time
+import logging
 from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
 from models.description_generator import model
 from helpers.formatter import parse_content
+
+logger = logging.getLogger(__name__)
 
 system_instructions = """
 ### REFINEMENT TASK
@@ -37,5 +40,5 @@ def get_refined_description(name, artist, vibe_description, critique) -> str:
         content = parse_content(str(response.content))
         return content
     except Exception as e:
-        print(f"Error refining vibe description for {name} by {artist}. Error: {e}")
-        raise e
+        logger.exception("Error refining vibe description for %s by %s. Error: %s", name, artist, e)
+        raise

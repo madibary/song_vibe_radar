@@ -3,6 +3,9 @@ from pydantic import BaseModel, Field
 from tavily import TavilyClient
 from langchain.tools import tool
 import lyricsgenius as genius
+import logging
+
+logger = logging.getLogger(__name__)
 
 tavily = TavilyClient(os.getenv("TAVILY_API_KEY"))
 genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"))
@@ -30,7 +33,7 @@ def search_web(query: str) -> str:
         return response["answer"]
     #check which exception it can be
     except Exception as e:
-        print(f"Error fetching from web. query: {query}, Error: {e}")
+        logger.exception("Error fetching from web. query: %s, Error: %s", query, e)
         return ""
         # raise e
 
@@ -50,8 +53,7 @@ def get_track_lyrics(track_name: str, artist_name: str) -> str:
     try:
         song = genius_api.search_song(track_name, artist_name)
     except Exception as e:
-        print(f"Failed to fetch lyrics for {track_name} by {artist_name}. Error: {e}")
-        #raise e
+        logger.exception("Failed to fetch lyrics for %s by %s. Error: %s", track_name, artist_name, e)
         return ""
 
     if song:
@@ -64,6 +66,6 @@ def get_track_lyrics(track_name: str, artist_name: str) -> str:
         return lyrics
         
     else:
-        print("track not found.")
+        logger.info("track not found: %s by %s", track_name, artist_name)
         return ""
 
