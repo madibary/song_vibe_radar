@@ -4,7 +4,7 @@ import os
 import uuid
 
 from state.agent_state import AgentState
-from state.node_outputs import SongRecommendationsOutput
+from typings.node_outputs import SongRecommendationsOutput
 
 SONGS_NUMBER_LIMIT = 5
 
@@ -38,8 +38,7 @@ def get_song_recommendations(state: AgentState) -> SongRecommendationsOutput:
         or "track" not in track_data["similartracks"]
         or not track_data["similartracks"]["track"]
     ):
-        # No recommendations found; return a structured error so the graph can continue
-        # todo: check if this is the right way to handle this case, or if we should raise an exception to trigger a retry
+        # No recommendations found; 
         return {"unsorted_songs": {}, "error": f"No recommendations found for '{track_name}' by '{artist_name}'."}
 
     result_tracks = track_data["similartracks"]["track"]

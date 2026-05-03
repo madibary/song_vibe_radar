@@ -1,5 +1,5 @@
 from state.agent_state import AgentState
-from state.node_outputs import VectorValidationOutput
+from typings.node_outputs import VectorValidationOutput
 from sentence_transformers import SentenceTransformer
 import logging
 

@@ -23,23 +23,23 @@ def refine_recommendation_vibe(state: SubgraphState):
         response = get_description(song_data["name"], song_data["artist"], song_data["reviews"], song_data["lyrics"], critique_text)
         logger.info("Refined description for %s: %s", song_data.get('name'), response)
         song_data["vibe_description"] = response
-        return {"song_data": [song_data], "iterations": state["iterations"] + 1, "critique": critique}
+        return {"song_data": [song_data], "iterations": state["iterations"] + 1, "feedback": critique}
     except Exception as e:
         logger.exception("Error refining vibe description of %s by %s: %s", song_data.get('name'), song_data.get('artist'), e)
         raise
 
 def refine_reference_vibe(state: AgentState):
     song_data = state.get("reference_track", {}).copy()
-    critique = state.get("reference_critique", "")
+    critique = state.get("reference_feedback", "")
     # If critique is structured, use the feedback field as the critique text
     if isinstance(critique, dict):
         critique_text = critique.get("feedback", "")
     else:
         critique_text = str(critique)
     try:
-        response = get_description(song_data["name"], song_data["artist"], song_data["reviews"], song_data["lyrics"], )
+        response = get_description(song_data["name"], song_data["artist"], song_data["reviews"], song_data["lyrics"], critique_text)
         song_data["vibe_description"] = str(response)
-        return {"reference_track": song_data, "reference_iterations": state["reference_iterations"] + 1, "reference_critique": critique}
+        return {"reference_track": song_data, "reference_iterations": state["reference_iterations"] + 1, "reference_feedback": critique_text}
     except Exception as e:
         logger.exception("Error refining vibe description of %s by %s: %s", song_data.get('name'), song_data.get('artist'), e)
         raise

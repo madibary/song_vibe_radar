@@ -27,10 +27,6 @@ system_instructions = """
     - The paragraph length should be 55 to 75 words in total.
     - Do NOT specify the word count.
 
-    ### INPUT DATA
-    Reviews: {reviews}
-    Lyrics: {lyrics}
-    Critique: {critique}
 
     ### OUTPUT
     [Your 4-sentence description here]
@@ -39,8 +35,7 @@ system_instructions = """
 @traceable
 def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage:
     user_input = ""
-    # NOW: edit the conditional edge in the main graph.
-    if not recent_messages: # is this enough of a check? maybe check for previous human message.
+    if not recent_messages:
         user_input = f"Generate a new vibe description. Reviews: {reviews} \nLyrics: {lyrics}"
         recent_messages = [HumanMessage(content=user_input)]
 

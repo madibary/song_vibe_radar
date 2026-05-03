@@ -32,7 +32,7 @@ initial_state = {
         "artist": artist_name
     },
     "reference_iterations": 0,
-    "reference_critique": ""
+    "reference_feedback": ""
 }
 
 for state in graph.stream(cast(AgentState, initial_state), stream_mode="values"):

@@ -6,7 +6,6 @@ from langchain_core.messages import convert_to_messages
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from state.agent_state import AgentState
 from state.subgraph_state import SubgraphState
-from state.node_outputs import EvaluationNodeOutput, ReferenceEvaluationOutput
 from models.evaluation import model
 
 
@@ -23,8 +22,8 @@ system_instructions = """
     You must provide your final answer by calling the ModelEvaluationOutput tool. Do not provide any conversational preamble.
     
     ### SCORING (1-10)
-    - 9-10: Perfect. Accurate, professional, and specific.
-    - 7-8: Good. Accurate, but maybe a bit generic.
+    - 9-10: Perfect. Accurate, professional, and specific. No hallucinations.
+    - 7-8: Good. Accurate, no hallucinations, but maybe a bit generic.
     - 5-6: Needs Work. Minor inaccuracies or very "AI-sounding."
     - 1-4: Fail. Contains lies/hallucinations or is completely off-base.
 
@@ -58,8 +57,7 @@ def evaluate_vibe_description(state: SubgraphState):
         return {"messages": []}
 
 
-# TODO: add typings 
-def evaluate_reference_vibe_description(state: AgentState) :
+def evaluate_reference_vibe_description(state: AgentState):
     song = state["reference_track"]
     messages = convert_to_messages(state["messages"])
     try:
