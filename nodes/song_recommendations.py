@@ -2,12 +2,13 @@ import requests
 import json
 import os
 import uuid
+import logging
 
 from state.agent_state import AgentState
 from typings.node_outputs import SongRecommendationsOutput
 
+logger = logging.getLogger(__name__)
 SONGS_NUMBER_LIMIT = 5
-
 
 def get_song_recommendations(state: AgentState) -> SongRecommendationsOutput:
     reference_track = state.get("reference_track", {})
@@ -38,7 +39,8 @@ def get_song_recommendations(state: AgentState) -> SongRecommendationsOutput:
         or "track" not in track_data["similartracks"]
         or not track_data["similartracks"]["track"]
     ):
-        # No recommendations found; 
+        # No recommendations found;
+        logger.info("No recommendations found for %s by %s", track_name, artist_name)
         return {"unsorted_songs": {}, "error": f"No recommendations found for '{track_name}' by '{artist_name}'."}
 
     result_tracks = track_data["similartracks"]["track"]

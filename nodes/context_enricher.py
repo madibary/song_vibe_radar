@@ -1,8 +1,15 @@
+import logging
 from state.agent_state import AgentState
 from langgraph.types import Send
+from langgraph.graph import END
 from tools.tools import search_web, get_track_lyrics
 
+logger = logging.getLogger(__name__)
+
 def map_songs(state: AgentState):
+    if not state.get("unsorted_songs"):
+        logger.info("No songs to map. Ending graph execution.")
+        return END
     return [Send("music_worker", {"song_data": [value], "is_passing": None, "score": None, "feedback": "", "iterations": 0}) for key, value in state["unsorted_songs"].items()]
 
 def enrich_song(song_data) -> dict:

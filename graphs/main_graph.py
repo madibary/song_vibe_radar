@@ -64,7 +64,7 @@ workflow.add_conditional_edges(
         "end": "get_song_recommendations"
     }
 )
-workflow.add_conditional_edges("get_song_recommendations", map_songs, ["music_worker"])
+workflow.add_conditional_edges("get_song_recommendations", map_songs, ["music_worker", END])
 workflow.add_conditional_edges("music_worker", should_reduce_songs , {
     "reduce": "reduce_enrichment_data",
     "end": END
