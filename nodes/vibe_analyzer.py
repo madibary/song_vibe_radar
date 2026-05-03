@@ -1,13 +1,11 @@
 import time
 import logging
-from helpers.formatter import parse_content
+from langchain_core.messages import AIMessage
 from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
-from state.node_outputs import DescriptionOutput
 from langsmith import traceable
 
 logger = logging.getLogger(__name__)
-
 
 system_instructions = """
     ### ROLE
@@ -32,25 +30,31 @@ system_instructions = """
     ### INPUT DATA
     Reviews: {reviews}
     Lyrics: {lyrics}
+    Critique: {critique}
 
     ### OUTPUT
     [Your 4-sentence description here]
     """
 
 @traceable
-def get_description(name, artist, reviews, lyrics) -> DescriptionOutput:
-    user_input = f"Reviews: {reviews} \nLyrics: {lyrics}"
+def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage:
+    user_input = ""
+    # NOW: edit the conditional edge in the main graph.
+    if not recent_messages: # is this enough of a check? maybe check for previous human message.
+        user_input = f"Generate a new vibe description. Reviews: {reviews} \nLyrics: {lyrics}"
+        recent_messages = [HumanMessage(content=user_input)]
+
+    has_system_message = any(isinstance(m, SystemMessage) for m in recent_messages)
+    if not has_system_message:
+        recent_messages = [SystemMessage(content=system_instructions), *recent_messages]
+
     time.sleep(2)
     try:
         response = model.invoke([
-            SystemMessage(content=system_instructions),
-            HumanMessage(content=user_input)
+            *recent_messages
         ])
-
-        content_str = str(response.content)
-        description = parse_content(content_str)
-        return {"description": description}
+        return response
     except Exception as e:
-        logger.exception("Error generating vibe description for %s by %s", name, artist)
-        raise
+        logger.exception("Error generating vibe description for %s by %s: %s", name, artist, str(e))
+        return AIMessage(content="")  # Return an empty description on failure
 

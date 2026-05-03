@@ -7,6 +7,7 @@ from helpers.formatter import parse_content
 
 logger = logging.getLogger(__name__)
 
+
 system_instructions = """
 ### REFINEMENT TASK
 You are a precision editor. You previously generated a song vibe description that was rejected by the Musicologist Judge. 

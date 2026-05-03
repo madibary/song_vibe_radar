@@ -9,6 +9,8 @@ class AgentState(TypedDict):
     reference_track: dict[str, str]
     unsorted_songs: dict
     best_match: str
-    reference_critique: Dict[str, Any]
+    reference_score: float
+    reference_feedback: str
+    reference_is_passing: bool
     reference_iterations: int
     song_data: Annotated[list, operator.add]

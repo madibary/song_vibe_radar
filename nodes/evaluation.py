@@ -1,6 +1,5 @@
 
 import logging
-import json
 from typing import cast
 from pydantic import BaseModel, Field
 from langchain_core.messages import convert_to_messages
@@ -44,67 +43,55 @@ system_instructions = """
 """
 
 
-def evaluate_vibe_description(state: SubgraphState) -> EvaluationNodeOutput:
+def evaluate_vibe_description(state: SubgraphState):
     song = state["song_data"][0]
-    system_prompt = SystemMessage(content=system_instructions)
-    song_context = HumanMessage(content=f"Lyrics: {song['lyrics']}\nReviews: {song['reviews']}\nVibe Description: {song['vibe_description']}")
-    model_with_schema = model.with_structured_output(ModelEvaluationOutput, method="function_calling")
-    # Only send the last 6 messages to keep it clean
     messages = convert_to_messages(state["messages"])
-    recent_messages = messages[-6:]
     try:
-        response = model_with_schema.invoke([
-            system_prompt,
-            song_context,
-            *recent_messages,
-        ])
-
-        response = cast(ModelEvaluationOutput, response)
-        # Convert to dict if it's a Pydantic object, otherwise use as is
-        result_dict = response.model_dump() if hasattr(response, "model_dump") else response
-        
-        # Create the message. We use json.dumps to keep the message content 
-        # as a string for LangGraph's history compatibility.
-        msg = AIMessage(content=json.dumps(result_dict, ensure_ascii=False))
-        return cast(EvaluationNodeOutput, {"messages": [msg]})
+        response = evaluate_description(song["lyrics"], song["reviews"], song["vibe_description"], messages)
+        response_text = generate_response_text(response)
+        msg = HumanMessage(content=response_text)
+        return {"messages": [msg], "is_passing": response.is_passing, "feedback": response.feedback, "score": response.score}
 
     except Exception as e:
         logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
         # Return a safe, consistent shape so the graph can continue or retry
-        return {"messages": [AIMessage(content="ERROR: evaluation failed")]}
+        return {"messages": []}
 
-def evaluate_reference_vibe_description(state: AgentState) -> ReferenceEvaluationOutput:
+
+# TODO: add typings 
+def evaluate_reference_vibe_description(state: AgentState) :
     song = state["reference_track"]
-    model_with_schema = model.with_structured_output(ModelEvaluationOutput, method="function_calling")
-    system_prompt = SystemMessage(content=system_instructions)
-    song_context = HumanMessage(content=f"Lyrics: {song['lyrics']}\nReviews: {song['reviews']}\nVibe Description: {song['vibe_description']}")
+    messages = convert_to_messages(state["messages"])
     try:
-        response = model_with_schema.invoke([
-            system_prompt,
-            song_context,
-        ])
-        content = getattr(response, "content", response)
-
-        # content may already be a dict, a pydantic model, or an object with attributes
-        if isinstance(content, dict):
-            result = content
-        else:
-            # Try to extract named attributes
-            try:
-                result = {
-                    "score": float(getattr(content, "score")),
-                    "is_passing": bool(getattr(content, "is_passing")),
-                    "feedback": str(getattr(content, "feedback")),
-                }
-            except Exception:
-                # Fallback: serialize to string under feedback and mark as failing
-                result = {"score": 0.0, "is_passing": False, "feedback": str(content)}
-
-        from typing import cast
-        return cast(ReferenceEvaluationOutput, {"reference_critique": result})
+        response = evaluate_description(song["lyrics"], song["reviews"], song["vibe_description"], messages)
+        response_text = generate_response_text(response)
+        msg = HumanMessage(content=response_text)
+        return {"messages": [msg], "reference_is_passing": response.is_passing, "reference_feedback": response.feedback, "reference_score": response.score}
 
     except Exception as e:
-        logger.exception("Error evaluating reference description of %s by %s", song.get("name"), song.get("artist"))
-        # Return a structured failure result
-        failure = {"score": 0.0, "is_passing": False, "feedback": "ERROR: evaluation failed"}
-        return cast(ReferenceEvaluationOutput, {"reference_critique": failure})
+        logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
+        # Return a safe, consistent shape so the graph can continue or retry
+        return {"messages": []}
+
+def evaluate_description(lyrics, reviews, vibe_description, messages) -> ModelEvaluationOutput:
+    recent_messages = messages[-6:]
+    system_prompt = SystemMessage(content=system_instructions)
+    song_context = HumanMessage(content=f"Lyrics: {lyrics}\nReviews: {reviews}\nVibe Description: {vibe_description}")
+    model_with_schema = model.with_structured_output(ModelEvaluationOutput, method="function_calling")
+
+    response = model_with_schema.invoke([
+        system_prompt,
+        song_context,
+        *recent_messages,
+    ])
+    
+    response = cast(ModelEvaluationOutput, response)
+    return response
+        
+        
+
+def generate_response_text (response) -> str:
+    if response.is_passing:
+        return f"Description generation APPROVED. score: {response.score}. feedback: {response.feedback}"
+    else:
+        return f"Retry description generation: {response.feedback}"
