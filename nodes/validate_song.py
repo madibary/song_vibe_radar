@@ -27,5 +27,5 @@ def validate_song(state: AgentState):
         track_data = json.loads(response.text)
     
     if not track_data or track_data.get("error"):
-        logger.info("track not found: %s by %s", track_name, artist_name)
+        logger.warning("track not found: %s by %s", track_name, artist_name)
         return {"error": f"Track '{track_name}' by '{artist_name}' not found."}

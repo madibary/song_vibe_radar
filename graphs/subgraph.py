@@ -15,6 +15,11 @@ def should_continue_evaluation_loop(state: SubgraphState):
     
     return "refine"
 
+def should_reflect(state: SubgraphState):
+    vibe_description = state["song_data"][0].get("vibe_description", "")
+    if not vibe_description:
+        return "end"    
+    return "reflect"
 
 subgraph_builder = StateGraph(SubgraphState)
 
@@ -25,7 +30,14 @@ subgraph_builder.add_node("reflect", evaluate_vibe_description, retry_policy=Ret
 
 subgraph_builder.set_entry_point("process_song")
 subgraph_builder.add_edge("process_song", "analyze_vibe")
-subgraph_builder.add_edge("analyze_vibe", "reflect")
+subgraph_builder.add_conditional_edges(
+    "analyze_vibe",
+    should_reflect,
+    {
+        "reflect": "reflect",
+        "end": END
+    }
+)
 
 subgraph_builder.add_conditional_edges(
     "reflect",

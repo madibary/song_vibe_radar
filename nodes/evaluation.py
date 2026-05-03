@@ -46,7 +46,7 @@ def evaluate_vibe_description(state: SubgraphState):
     song = state["song_data"][0]
     messages = convert_to_messages(state["messages"])
     try:
-        response = evaluate_description(song["lyrics"], song["reviews"], song["vibe_description"], messages)
+        response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
         response_text = generate_response_text(response)
         msg = HumanMessage(content=response_text)
         return {"messages": [msg], "is_passing": response.is_passing, "feedback": response.feedback, "score": response.score}
@@ -61,7 +61,7 @@ def evaluate_reference_vibe_description(state: AgentState):
     song = state["reference_track"]
     messages = convert_to_messages(state["messages"])
     try:
-        response = evaluate_description(song["lyrics"], song["reviews"], song["vibe_description"], messages)
+        response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
         response_text = generate_response_text(response)
         msg = HumanMessage(content=response_text)
         return {"messages": [msg], "reference_is_passing": response.is_passing, "reference_feedback": response.feedback, "reference_score": response.score}

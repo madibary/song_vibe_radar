@@ -40,7 +40,7 @@ def get_song_recommendations(state: AgentState) -> SongRecommendationsOutput:
         or not track_data["similartracks"]["track"]
     ):
         # No recommendations found;
-        logger.info("No recommendations found for %s by %s", track_name, artist_name)
+        logger.warning("No recommendations found for %s by %s", track_name, artist_name)
         return {"unsorted_songs": {}, "error": f"No recommendations found for '{track_name}' by '{artist_name}'."}
 
     result_tracks = track_data["similartracks"]["track"]

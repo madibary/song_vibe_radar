@@ -32,18 +32,10 @@ def search_web(query: str) -> str:
     try:
         response = tavily.search(query=query, include_answer=True, search_depth="advanced")
         return response["answer"]
-    #check which exception it can be
+    
     except Exception as e:
         logger.exception("Error fetching from web. query: %s, Error: %s", query, e)
         return ""
-        # raise e
-
-
-@tool("get_word_count", args_schema=GetWordCountInput, return_direct=True)
-def get_word_count(text: str) -> str:
-    """Returns the number of words in the text."""
-    words = text.split()
-    return f"Word count: {len(words)}"
 
 
 def get_track_lyrics(track_name: str, artist_name: str) -> str:
@@ -70,6 +62,6 @@ def get_track_lyrics(track_name: str, artist_name: str) -> str:
         return lyrics
         
     else:
-        logger.info("track not found: %s by %s", track_name, artist_name)
+        logger.warning("track lyrics not found: %s by %s", track_name, artist_name)
         return ""
 

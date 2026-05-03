@@ -34,6 +34,10 @@ system_instructions = """
 
 @traceable
 def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage:
+    if not reviews and not lyrics:
+        logger.warning("No reviews or lyrics provided for %s by %s. Generating an empty description.", name, artist)
+        return AIMessage(content="")
+    
     user_input = ""
     if not recent_messages:
         user_input = f"Generate a new vibe description. Reviews: {reviews} \nLyrics: {lyrics}"

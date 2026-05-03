@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def map_songs(state: AgentState):
     if not state.get("unsorted_songs"):
-        logger.info("No songs to map. Ending graph execution.")
+        logger.warning("No songs to map. Ending graph execution.")
         return END
     return [Send("music_worker", {"song_data": [value], "is_passing": None, "score": None, "feedback": "", "iterations": 0}) for key, value in state["unsorted_songs"].items()]
 
