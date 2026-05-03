@@ -1,4 +1,5 @@
 import os
+import re
 from pydantic import BaseModel, Field
 from tavily import TavilyClient
 from langchain.tools import tool
@@ -58,6 +59,9 @@ def get_track_lyrics(track_name: str, artist_name: str) -> str:
 
     if song:
         lyrics = song.lyrics
+        # Remove any text inside square brackets (e.g., [Chorus], [Intro])
+        lyrics = re.sub(r'\[.*?\]', '', lyrics)
+
         words_list = lyrics.split()
         if (len(words_list) > 40):
             first_40_words = words_list[:40]
