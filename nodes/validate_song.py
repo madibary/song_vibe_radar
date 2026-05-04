@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def validate_song(state: AgentState):
+def validate_song(state: AgentState) -> dict:
     reference_track = state.get("reference_track", {})
     track_name = reference_track.get("name", "")
     artist_name = reference_track.get("artist", "")

@@ -1,6 +1,5 @@
 from typing import TypedDict, Dict, Any, NotRequired, List
 from langchain_core.messages import BaseMessage
-from langchain_core.messages import AIMessage
 
 class SongRecommendationsOutput(TypedDict):
     unsorted_songs: Dict[str, Dict[str, Any]]
@@ -18,8 +17,6 @@ class ModelEvaluationResult(TypedDict):
 
 class ReferenceEvaluationOutput(TypedDict):
     messages: List[BaseMessage]
-
-
 
 
 class VectorValidationOutput(TypedDict):

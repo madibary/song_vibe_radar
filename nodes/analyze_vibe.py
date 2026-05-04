@@ -11,7 +11,7 @@ from models.description_generator import model
 
 logger = logging.getLogger(__name__)
 
-def analyze_recommendation_vibe(state: SubgraphState) -> SubgraphState:
+def analyze_recommendation_vibe(state: SubgraphState) -> dict:
     song_data = state["song_data"][0]
     new_messages = analyze_vibe(song_data, state["messages"])
     model_response = new_messages[-1]
@@ -20,9 +20,9 @@ def analyze_recommendation_vibe(state: SubgraphState) -> SubgraphState:
 
     enriched_song_data = song_data.copy()
     enriched_song_data["vibe_description"] = description
-    return cast(SubgraphState, {"song_data": [enriched_song_data], "messages": new_messages, "iterations": state["iterations"] + 1})
+    return {"song_data": [enriched_song_data], "messages": new_messages, "iterations": state["iterations"] + 1}
 
-def analyze_reference_vibe(state: AgentState) -> AgentState:
+def analyze_reference_vibe(state: AgentState) -> dict:
     song_data = state["reference_track"]
     new_messages = analyze_vibe(song_data, state["messages"])
     last_message = new_messages[-1]
@@ -31,7 +31,7 @@ def analyze_reference_vibe(state: AgentState) -> AgentState:
     
     enriched_song_data = song_data.copy()
     enriched_song_data["vibe_description"] = description
-    return cast(AgentState, {"reference_track": enriched_song_data, "messages": new_messages, "reference_iterations": state["reference_iterations"] + 1})
+    return {"reference_track": enriched_song_data, "messages": new_messages, "reference_iterations": state["reference_iterations"] + 1}
 
 
 def analyze_vibe(song_data, messages) -> list[HumanMessage | AIMessage | SystemMessage]:

@@ -54,6 +54,9 @@ for updates in graph.stream(cast(AgentState, initial_state), stream_mode="update
         elif node_name == "music_worker":
             print("🎶 Processing recommendations: generating vibes, evaluating, and sorting...")
 
+# Check for errors
+if "error" in final_state:
+    print(f"❌ Error: {final_state['error']}")
 else:
     # Print reference song vibe description
     reference_track = final_state.get("reference_track", {})
@@ -67,9 +70,9 @@ else:
         print("🎉 Top Recommendations:")
         for i, song in enumerate(sorted_songs, 1):
             score = song.get("score", "N/A")
-            # Round score to 2 decimal places if it's a number
+            # Convert score to percentage if it's a number
             if isinstance(score, (int, float)):
-                score = round(score, 2)
+                score = f"{round(score * 100)}%"
             print(f"\n{i}. {song['name']} by {song['artist']} (Vibe match: {score})")
             vibe_desc = song.get("vibe_description", "")
             if vibe_desc:

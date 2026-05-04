@@ -6,17 +6,19 @@ from nodes.evaluation import evaluate_reference_vibe_description
 from langgraph.types import RetryPolicy
 from nodes.validate_song import validate_song
 from state.agent_state import AgentState
-from nodes.context_enricher import enrich_reference_song, map_songs, reduce_enrichment_data
+from nodes.map_songs import map_songs
+from nodes.enrich_song import enrich_reference_song
+from nodes.reduce_songs import reduce_enrichment_data
 from langgraph.graph.state import StateGraph
 from nodes.song_recommendations import get_song_recommendations
 from nodes.vector_validation import validate_by_vectors
 
-def is_valid_reference_song(state: AgentState):
+def is_valid_reference_song(state: AgentState) -> bool:
     if "error" in state:
         return False
     return True
 
-def should_continue_evaluation_loop(state: AgentState):
+def should_continue_evaluation_loop(state: AgentState) -> str:
     if state.get("reference_iterations", 0) > 1:
         return "end"
     
@@ -25,7 +27,7 @@ def should_continue_evaluation_loop(state: AgentState):
 
     return "refine"
 
-def should_reduce_songs(state: AgentState):
+def should_reduce_songs(state: AgentState) -> str:
     # check if the reduced songs aren't empty
     unsorted_songs = state.get("unsorted_songs", {})
     if not unsorted_songs:

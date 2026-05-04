@@ -1,6 +1,6 @@
 
 import logging
-from typing import cast
+from typing import cast, Optional
 from pydantic import BaseModel, Field
 from langchain_core.messages import convert_to_messages
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -43,11 +43,11 @@ system_instructions = """
 """
 
 
-def evaluate_recommendation_vibe_description(state: SubgraphState):
+def evaluate_recommendation_vibe_description(state: SubgraphState) -> dict:
     song = state["song_data"][0]
     messages = convert_to_messages(state["messages"])
     try:
-        response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
+        response = evaluate_description(song.get("lyrics", ""), song.get("reviews", ""), song.get("vibe_description", ""), messages)
         response_text = generate_response_text(response, SUBGRAPH_EVALUATION_THRESHOLD)
         msg = HumanMessage(content=response_text)
         return {"messages": [msg], "feedback": response.feedback, "score": response.score}
@@ -58,11 +58,11 @@ def evaluate_recommendation_vibe_description(state: SubgraphState):
         return {"messages": []}
 
 
-def evaluate_reference_vibe_description(state: AgentState):
+def evaluate_reference_vibe_description(state: AgentState) -> dict:
     song = state["reference_track"]
     messages = convert_to_messages(state["messages"])
     try:
-        response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
+        response = evaluate_description(song.get("lyrics", ""), song.get("reviews", ""), song.get("vibe_description", ""), messages)
         response_text = generate_response_text(response, EVALUATION_THRESHOLD)
         msg = HumanMessage(content=response_text)
         return {"messages": [msg], "reference_feedback": response.feedback, "reference_score": response.score}
@@ -72,7 +72,7 @@ def evaluate_reference_vibe_description(state: AgentState):
         # Return a safe, consistent shape so the graph can continue or retry
         return {"messages": [], "reference_feedback": "Evaluation failed due to an error.", "reference_score": 0}
 
-def evaluate_description(lyrics, reviews, vibe_description, messages) -> ModelEvaluationOutput:
+def evaluate_description(lyrics: str, reviews: str, vibe_description: str, messages: list) -> ModelEvaluationOutput:
     recent_messages = messages[-6:]
     system_prompt = SystemMessage(content=system_instructions)
     song_context = HumanMessage(content=f"Lyrics: {lyrics}\nReviews: {reviews}\nVibe Description: {vibe_description}")
@@ -89,7 +89,7 @@ def evaluate_description(lyrics, reviews, vibe_description, messages) -> ModelEv
         
         
 
-def generate_response_text (response, threshold) -> str:
+def generate_response_text(response: ModelEvaluationOutput, threshold: float) -> str:
     if response.score >= threshold:
         return f"Description generation APPROVED. score: {response.score}. feedback: {response.feedback}"
     else:
