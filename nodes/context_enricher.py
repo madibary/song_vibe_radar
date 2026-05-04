@@ -10,7 +10,7 @@ def map_songs(state: AgentState):
     if not state.get("unsorted_songs"):
         logger.warning("No songs to map. Ending graph execution.")
         return END
-    return [Send("music_worker", {"song_data": [value], "is_passing": None, "score": None, "feedback": "", "iterations": 0}) for key, value in state["unsorted_songs"].items()]
+    return [Send("music_worker", {"song_data": [value], "score": None, "feedback": "", "iterations": 0}) for key, value in state["unsorted_songs"].items()]
 
 def enrich_song(song_data) -> dict:
     search_results = search_web(f"Find reviews for the song {song_data["name"]} by {song_data["artist"]} based on vibe and song energy. keep it short - under 25 words.")

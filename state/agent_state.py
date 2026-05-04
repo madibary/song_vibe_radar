@@ -12,7 +12,6 @@ class AgentState(TypedDict):
     best_match: str
     reference_score: float
     reference_feedback: str
-    reference_is_passing: bool
     reference_iterations: int
     error: str
     song_data: Annotated[list, operator.add]

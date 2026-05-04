@@ -38,11 +38,6 @@ def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage
         logger.warning("No reviews or lyrics provided for %s by %s. Generating an empty description.", name, artist)
         return AIMessage(content="")
     
-    user_input = ""
-    if not recent_messages:
-        user_input = f"Generate a new vibe description. Reviews: {reviews} \nLyrics: {lyrics}"
-        recent_messages = [HumanMessage(content=user_input)]
-
     has_system_message = any(isinstance(m, SystemMessage) for m in recent_messages)
     if not has_system_message:
         recent_messages = [SystemMessage(content=system_instructions), *recent_messages]

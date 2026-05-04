@@ -13,7 +13,6 @@ class EvaluationNodeOutput(TypedDict):
 
 class ModelEvaluationResult(TypedDict):
     score: float
-    is_passing: bool
     feedback: str
 
 

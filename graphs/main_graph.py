@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, END
 from graphs.subgraph import subgraph
+from helpers.thresholds import EVALUATION_THRESHOLD
 from nodes.analyze_vibe import analyze_reference_vibe
 from nodes.evaluation import evaluate_reference_vibe_description
 from langgraph.types import RetryPolicy
@@ -19,7 +20,7 @@ def should_continue_evaluation_loop(state: AgentState):
     if state.get("reference_iterations", 0) > 1:
         return "end"
     
-    if state.get("reference_is_passing") is True or (state.get("reference_score") is not None and state.get("reference_score") >= 7):
+    if (state.get("reference_score") is not None and state.get("reference_score") >= EVALUATION_THRESHOLD):
         return "end"
 
     return "refine"

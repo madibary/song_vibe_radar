@@ -7,6 +7,5 @@ class SubgraphState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     song_data: list[dict]
     feedback: str
-    is_passing: bool
     score: float
     iterations: int

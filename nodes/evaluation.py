@@ -3,7 +3,8 @@ import logging
 from typing import cast
 from pydantic import BaseModel, Field
 from langchain_core.messages import convert_to_messages
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+from langchain_core.messages import HumanMessage, SystemMessage
+from helpers.thresholds import EVALUATION_THRESHOLD, SUBGRAPH_EVALUATION_THRESHOLD
 from state.agent_state import AgentState
 from state.subgraph_state import SubgraphState
 from models.evaluation import model
@@ -13,25 +14,25 @@ logger = logging.getLogger(__name__)
 
 class ModelEvaluationOutput(BaseModel):
     score: float = Field(description="Average score from 1-10 based on criteria")
-    is_passing: bool = Field(description="Whether the description meets the quality bar")
     feedback: str = Field(description="Actionable feedback if the description failed")
 
 system_instructions = """
     ### ROLE
-    You are a strict musicologist. Rate the provided "Vibe Description" based on how well it matches the "Source Context" (Lyrics/Reviews).
+    You are an elitist music critic for a high-end publication.
+    Rate the provided "Vibe Description" with rigorous standards.
+    The description must be specific, evocative, and accurately reflect the info given about the song.
     You must provide your final answer by calling the ModelEvaluationOutput tool. Do not provide any conversational preamble.
     
     ### SCORING (1-10)
-    - 9-10: Perfect. Accurate, professional, and specific. No hallucinations.
-    - 7-8: Good. Accurate, no hallucinations, but maybe a bit generic.
-    - 5-6: Needs Work. Minor inaccuracies or very "AI-sounding."
-    - 1-4: Fail. Contains lies/hallucinations or is completely off-base.
+    - 9-10: Exceptional. Highly specific, evocative, emotionally accurate. No generic language. Captures the unique essence of the song.
+    - 7-8: Good. Accurate and specific, but may lack depth or have minor generic phrasing.
+    - 5-6: Marginal. Some accuracy but too generic, vague, or missing key emotional elements.
+    - 1-4: Fail. Inaccurate, hallucinatory, off-base, or completely generic AI-speak.
 
     ### OUTPUT (JSON)
     {
-    "score": [number],
-    "is_passing": [true/false, pass if score >= 7],
-    "feedback": "If failing, tell the writer exactly what to change."
+    "score": [number 1-10],
+    "feedback": "List specific improvements needed. Be direct and actionable."
     }
 
     ### INPUT DATA
@@ -42,14 +43,14 @@ system_instructions = """
 """
 
 
-def evaluate_vibe_description(state: SubgraphState):
+def evaluate_recommendation_vibe_description(state: SubgraphState):
     song = state["song_data"][0]
     messages = convert_to_messages(state["messages"])
     try:
         response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
-        response_text = generate_response_text(response)
+        response_text = generate_response_text(response, SUBGRAPH_EVALUATION_THRESHOLD)
         msg = HumanMessage(content=response_text)
-        return {"messages": [msg], "is_passing": response.is_passing, "feedback": response.feedback, "score": response.score}
+        return {"messages": [msg], "feedback": response.feedback, "score": response.score}
 
     except Exception as e:
         logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
@@ -62,14 +63,14 @@ def evaluate_reference_vibe_description(state: AgentState):
     messages = convert_to_messages(state["messages"])
     try:
         response = evaluate_description(song.get("lyrics"), song.get("reviews"), song.get("vibe_description"), messages)
-        response_text = generate_response_text(response)
+        response_text = generate_response_text(response, EVALUATION_THRESHOLD)
         msg = HumanMessage(content=response_text)
-        return {"messages": [msg], "reference_is_passing": response.is_passing, "reference_feedback": response.feedback, "reference_score": response.score}
+        return {"messages": [msg], "reference_feedback": response.feedback, "reference_score": response.score}
 
     except Exception as e:
         logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
         # Return a safe, consistent shape so the graph can continue or retry
-        return {"messages": []}
+        return {"messages": [], "reference_feedback": "Evaluation failed due to an error.", "reference_score": 0}
 
 def evaluate_description(lyrics, reviews, vibe_description, messages) -> ModelEvaluationOutput:
     recent_messages = messages[-6:]
@@ -88,8 +89,8 @@ def evaluate_description(lyrics, reviews, vibe_description, messages) -> ModelEv
         
         
 
-def generate_response_text (response) -> str:
-    if response.is_passing:
+def generate_response_text (response, threshold) -> str:
+    if response.score >= threshold:
         return f"Description generation APPROVED. score: {response.score}. feedback: {response.feedback}"
     else:
         return f"Retry description generation: {response.feedback}"
