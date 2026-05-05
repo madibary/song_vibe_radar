@@ -5,14 +5,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-embeddings_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+_embeddings_model = None
+
+
+def _get_embeddings_model():
+    global _embeddings_model
+    if _embeddings_model is None:
+        _embeddings_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+    return _embeddings_model
 
 
 def validate_by_vectors(state: AgentState) -> VectorValidationOutput:
     reference_track = state["reference_track"]
     first_song_desc = str(reference_track.get("vibe_description"))
     logger.info("First song description: %s", first_song_desc)
-    first_song_vector = embeddings_model.encode(first_song_desc)
+    first_song_vector = _get_embeddings_model().encode(first_song_desc)
 
     highest_song_desc_id = None
     highest_score = 0.0
@@ -28,8 +35,8 @@ def validate_by_vectors(state: AgentState) -> VectorValidationOutput:
                 songs[song_id]["score"] = 0
                 logger.info("No vibe description for %s by %s, skipping vector validation.", song_data.get('name'), song_data.get('artist'))
                 continue
-            embedding = embeddings_model.encode(song_data["vibe_description"])
-            similarity_raw = embeddings_model.similarity(first_song_vector, embedding)
+            embedding = _get_embeddings_model().encode(song_data["vibe_description"])
+            similarity_raw = _get_embeddings_model().similarity(first_song_vector, embedding)
             try:
                 similarity_val = float(similarity_raw)
             except Exception:

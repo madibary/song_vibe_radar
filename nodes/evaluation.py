@@ -76,7 +76,7 @@ def evaluate_description(lyrics: str, reviews: str, vibe_description: str, messa
     recent_messages = messages[-6:]
     system_prompt = SystemMessage(content=system_instructions)
     song_context = HumanMessage(content=f"Lyrics: {lyrics}\nReviews: {reviews}\nVibe Description: {vibe_description}")
-    model_with_schema = model.with_structured_output(ModelEvaluationOutput, method="function_calling")
+    model_with_schema = model().with_structured_output(ModelEvaluationOutput, method="function_calling")
 
     response = model_with_schema.invoke([
         system_prompt,

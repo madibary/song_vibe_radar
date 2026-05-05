@@ -5,7 +5,14 @@ import lyricsgenius as genius
 
 logger = logging.getLogger(__name__)
 
-genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"), verbose=False)
+_genius_api = None
+
+
+def _get_genius_api():
+    global _genius_api
+    if _genius_api is None:
+        _genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"), verbose=False)
+    return _genius_api
 
 
 def get_track_lyrics(track_name: str, artist_name: str) -> str:
@@ -14,7 +21,7 @@ def get_track_lyrics(track_name: str, artist_name: str) -> str:
     Returns a string with the lyrics of the track.
     """
     try:
-        song = genius_api.search_song(track_name, artist_name)
+        song = _get_genius_api().search_song(track_name, artist_name)
     except Exception as e:
         logger.exception("Failed to fetch lyrics for %s by %s. Error: %s", track_name, artist_name, e)
         return ""

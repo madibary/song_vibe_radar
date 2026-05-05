@@ -42,9 +42,8 @@ def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage
     if not has_system_message:
         recent_messages = [SystemMessage(content=system_instructions), *recent_messages]
 
-    time.sleep(2)
     try:
-        response = model.invoke([
+        response = model().invoke([
             *recent_messages
         ])
         return response
