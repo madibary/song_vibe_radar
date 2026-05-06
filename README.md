@@ -117,6 +117,19 @@ flowchart TD
     vectors --> END3([✓ End])
 ```
 
+## Tech Stack
+
+- **[LangGraph](https://github.com/langchain-ai/langgraph)** — agentic graph orchestration
+- **[LangChain](https://github.com/langchain-ai/langchain)** — LLM abstractions and message handling
+- **[Groq](https://groq.com/)** — fast LLM inference for vibe description generation (Qwen3-32B)
+- **[OpenRouter](https://openrouter.ai/)** — LLM-as-a-judge evaluation (GPT-4o)
+- **[sentence-transformers](https://www.sbert.net/)** — vector embeddings for vibe similarity ranking
+- **[Last.fm API](https://www.last.fm/api)** — song validation and recommendations
+- **[Genius API](https://docs.genius.com/)** — lyrics retrieval
+- **[Tavily](https://tavily.com/)** — web search for song reviews
+- **[Starlette](https://www.starlette.io/) + [uvicorn](https://www.uvicorn.org/)** — web server with SSE streaming
+- **[LangSmith](https://smith.langchain.com/)** — tracing and observability
+
 ## Project Structure
 
 - `app.py`: CLI entry point.
