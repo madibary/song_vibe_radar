@@ -50,7 +50,15 @@ This project allows users to input a reference song (by name and artist), and th
 
 ## Usage
 
-Run the application:
+### Web app (recommended)
+
+```bash
+uvicorn web_app:app --reload
+```
+
+Open `http://localhost:8000` in your browser, enter a track name and artist, and the app will stream live progress as it finds recommendations.
+
+### CLI
 
 ```bash
 python app.py
@@ -66,9 +74,35 @@ The system uses a graph-based architecture with the following components:
 - **State Management**: Maintains context across processing steps.
 - **Vector Validation**: Ensures vibe descriptions are semantically aligned.
 
+```mermaid
+flowchart TD
+    START([▶ Start]) --> validate[validate reference song]
+    validate -->|error| END1([✗ End])
+    validate -->|valid| enrich[enrich reference song]
+    enrich --> vibe[analyze vibe]
+    vibe --> reflect[reflect / evaluate]
+    reflect -->|score too low| vibe
+    reflect -->|approved| recommend[get song recommendations]
+    recommend -->|no results| END2([✗ End])
+    recommend -->|fan-out per song| worker
+
+    subgraph worker [music worker — runs in parallel per recommended song]
+        w_enrich[enrich song] --> w_vibe[analyze vibe]
+        w_vibe -->|no description| WEND1([end])
+        w_vibe -->|has description| w_reflect[reflect / evaluate]
+        w_reflect -->|approved| WEND2([end])
+        w_reflect -->|score too low| w_vibe
+    end
+
+    worker --> reduce[reduce enrichment data]
+    reduce --> vectors[vector validator]
+    vectors --> END3([✓ End])
+```
+
 ## Project Structure
 
-- `app.py`: Main entry point.
+- `app.py`: CLI entry point.
+- `web_app.py`: Web app entry point (Starlette + uvicorn).
 - `graphs/`: Contains the main graph and subgraphs.
 - `nodes/`: Individual processing nodes.
 - `models/`: AI models for description generation and evaluation.
