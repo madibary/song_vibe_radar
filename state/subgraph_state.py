@@ -6,5 +6,6 @@ from langgraph.graph.message import add_messages # helper function to add messag
 class SubgraphState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
     song_data: list[dict]
-    critique: str
+    feedback: str
+    score: float
     iterations: int

@@ -1,54 +1,52 @@
 from langgraph.graph.state import StateGraph, END
-from nodes.evaluation import evaluate_vibe_description
-from nodes.process_song import process_song
+from helpers.thresholds import SUBGRAPH_EVALUATION_THRESHOLD
+from nodes.analyze_vibe import analyze_recommendation_vibe
+from nodes.evaluation import evaluate_recommendation_vibe_description
+from nodes.enrich_song import enrich_recommendation_song
 from state.subgraph_state import SubgraphState
-from tools.tools import get_word_count
-from nodes.refine_vibe import refine_vibe
-from langgraph.prebuilt import ToolNode
 from langgraph.types import RetryPolicy
-from langchain_core.messages import AIMessage
 
-tool_node = ToolNode([get_word_count], handle_tool_errors=True)
 
-def should_continue_evaluation_loop(state: SubgraphState):
-    messages = state["messages"]
-    last_message = messages[-1]
-    
+def should_continue_evaluation_loop(state: SubgraphState) -> str:    
     if state.get("iterations", 0) > 1:
         return "end"
 
-    if isinstance(last_message, AIMessage) and last_message.tool_calls:
-            return "tools"
-
-    content = last_message.content
-    if "APPROVED" in content:
+    if (state.get("score") is not None and state.get("score") >= SUBGRAPH_EVALUATION_THRESHOLD):
         return "end"
     
-    # If it's not a tool call and not an approval, it's a critique.
     return "refine"
 
-
+def should_reflect(state: SubgraphState) -> str:
+    vibe_description = state["song_data"][0].get("vibe_description", "")
+    if not vibe_description:
+        return "end"    
+    return "reflect"
 
 subgraph_builder = StateGraph(SubgraphState)
 
-subgraph_builder.add_node("process_song", process_song, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
-subgraph_builder.add_node("refine_vibe", refine_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
-subgraph_builder.add_node("reflect", evaluate_vibe_description, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
-subgraph_builder.add_node("tools", tool_node)
+subgraph_builder.add_node("enrich_song", enrich_recommendation_song, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 
-subgraph_builder.set_entry_point("process_song")
-subgraph_builder.add_edge("process_song", "reflect")
+subgraph_builder.add_node("analyze_vibe", analyze_recommendation_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
+subgraph_builder.add_node("reflect", evaluate_recommendation_vibe_description, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
+
+subgraph_builder.set_entry_point("enrich_song")
+subgraph_builder.add_edge("enrich_song", "analyze_vibe")
+subgraph_builder.add_conditional_edges(
+    "analyze_vibe",
+    should_reflect,
+    {
+        "reflect": "reflect",
+        "end": END
+    }
+)
 
 subgraph_builder.add_conditional_edges(
     "reflect",
     should_continue_evaluation_loop,
     {
-        "tools": "tools",
-        "refine": "refine_vibe",
+        "refine": "analyze_vibe",
         "end": END
     }
 )
-subgraph_builder.add_edge("tools", "reflect")
-subgraph_builder.add_edge("refine_vibe", "reflect")
 
 subgraph = subgraph_builder.compile()

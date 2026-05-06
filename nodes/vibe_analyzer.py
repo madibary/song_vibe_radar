@@ -1,8 +1,11 @@
 import time
-from models.groq import model
+import logging
+from langchain_core.messages import AIMessage
+from models.description_generator import model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langsmith import traceable
 
+logger = logging.getLogger(__name__)
 
 system_instructions = """
     ### ROLE
@@ -17,35 +20,34 @@ system_instructions = """
 
     
     ### CONSTRAINTS
-    - Do NOT use the song title or artist name in the description.
+    - Do NOT use the song title, artist name or song BPM in the description.
     - Do NOT use emojis, numbers or special symbols. 
     - Use objective descriptors (e.g., "reverberant," "distorted," "staccato") over subjective ones ("good," "great").
     - Maintain a clinical yet descriptive tone to ensure high-quality vector embeddings.
     - The paragraph length should be 55 to 75 words in total.
     - Do NOT specify the word count.
 
-    ### INPUT DATA
-    Song Title: {title}
-    Artist: {artist}
-    Reviews: {reviews}
-    Lyrics: {lyrics}
 
     ### OUTPUT
     [Your 4-sentence description here]
     """
 
 @traceable
-def get_description(name, artist, reviews, lyrics) -> dict:
-    user_input = f"Song Title: {name}\nArtist: {artist}\nReviews: {reviews} \nLyrics: {lyrics}"
-    time.sleep(2)
-    try:
-        response = model.invoke([
-            SystemMessage(content=system_instructions),
-            HumanMessage(content=user_input)
-        ])
-        return {"description": str(response.content)}
-    except Exception as e:
-        print(f"Error generating vibe description for {name} by {artist}. Error: {e}")
-        raise e
+def get_description(name, artist, reviews, lyrics, recent_messages) -> AIMessage:
+    if not reviews and not lyrics:
+        logger.warning("No reviews or lyrics provided for %s by %s. Generating an empty description.", name, artist)
+        return AIMessage(content="")
+    
+    has_system_message = any(isinstance(m, SystemMessage) for m in recent_messages)
+    if not has_system_message:
+        recent_messages = [SystemMessage(content=system_instructions), *recent_messages]
 
+    try:
+        response = model().invoke([
+            *recent_messages
+        ])
+        return response
+    except Exception as e:
+        logger.exception("Error generating vibe description for %s by %s: %s", name, artist, str(e))
+        return AIMessage(content="")  # Return an empty description on failure
 
