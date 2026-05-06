@@ -1,6 +1,13 @@
 # Song Vibe Radar
 
-An agentic music discovery system that prioritizes the "vibes" of songs. Discover new music that matches the vibe of your favorite tracks!
+An agentic music discovery system that prioritizes the "vibes" of songs. 
+
+Have you ever gotten frustrated over irrelevant song recommendations on streaming platforms? This project lets you find songs based on "vibe" similarity - is the vibe like..
+* Crying while dancing in the club?
+* Neon-lights nighttime drive EDM?
+* Nostalgic city-pop bicycle ride?
+* Quiet acoustic morning reflection?
+Discover new music that matches the vibe of your favorite tracks!
 
 ## Description
 
@@ -72,7 +79,7 @@ The system uses a graph-based architecture with the following components:
 
 - **Nodes**: Handle specific tasks like song processing, vibe analysis, evaluation, and recommendations.
 - **State Management**: Maintains context across processing steps.
-- **Vector Validation**: Ensures vibe descriptions are semantically aligned.
+- **Vector Based Ranking**: Ensures vibe descriptions are semantically aligned and ranks them by semantic similarity.
 
 ```mermaid
 flowchart TD
