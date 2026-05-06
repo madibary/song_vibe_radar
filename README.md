@@ -21,6 +21,16 @@ This project allows users to input a reference song (by name and artist), and th
 5. Sort recommendations based on vibe similarity using vector embeddings.
 6. Output a sorted list of top songs that match the reference song's vibe.
 
+## Demo / User Interface
+
+Search interface + agent progress:
+
+<img src="image.png" width="500" />
+
+Results sample:
+
+<img src="image-1.png" width="500" />
+
 ## Features
 
 - **Vibe-Based Discovery**: Focuses on emotional and atmospheric qualities rather than just genre or popularity.
