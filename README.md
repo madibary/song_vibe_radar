@@ -34,7 +34,7 @@ Results sample:
 ## Features
 
 - **Vibe-Based Discovery**: Focuses on emotional and atmospheric qualities rather than just genre or popularity.
-- **Real-Time Evaluation**: Uses LLM-as-a-judge for quality assessment of vibe descriptions.
+- **Real-Time Evaluation**: Uses LLM-as-a-judge for quality assessment of vibe descriptions by scoring them.
 - **Vector Embeddings**: Employs semantic similarity for accurate vibe matching.
 - **Agentic Architecture**: Built with LangGraph for robust, stateful processing.
 
