@@ -7,6 +7,7 @@ Have you ever gotten frustrated over irrelevant song recommendations on streamin
 * Neon-lights nighttime drive EDM?
 * Nostalgic city-pop bicycle ride?
 * Quiet acoustic morning reflection?
+
 Discover new music that matches the vibe of your favorite tracks!
 
 ## Description

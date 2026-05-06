@@ -55,7 +55,7 @@ def evaluate_recommendation_vibe_description(state: SubgraphState) -> dict:
     except Exception as e:
         logger.exception("Error evaluating description of %s by %s", song.get("name"), song.get("artist"))
         # Return a safe, consistent shape so the graph can continue or retry
-        return {"messages": []}
+        return {"messages": [], "feedback": "Evaluation failed due to an error.", "score": 0}
 
 
 def evaluate_reference_vibe_description(state: AgentState) -> dict:
