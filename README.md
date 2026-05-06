@@ -115,7 +115,7 @@ flowchart TD
 - `nodes/`: Individual processing nodes.
 - `models/`: AI models for description generation and evaluation.
 - `state/`: State definitions.
-- `tools/`: Utility tools.
+- `helpers/`: Utility tools.
 
 ## Contributing
 
