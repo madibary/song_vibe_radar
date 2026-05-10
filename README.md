@@ -14,7 +14,7 @@ Discover new music that matches the vibe of your favorite tracks!
 
 Search interface + agent progress:
 
-<img src="song_radar_input.jpg" width="500" />
+<img src="song_radar_input.png" width="500" />
 
 Results sample:
 
