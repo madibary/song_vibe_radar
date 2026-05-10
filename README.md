@@ -29,7 +29,7 @@ Search interface + agent progress:
 
 Results sample:
 
-<img src="image-1.png" width="500" />
+<img src="vibe_results.png" width="500" />
 
 ## Features
 
