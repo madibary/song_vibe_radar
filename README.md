@@ -25,11 +25,11 @@ This project allows users to input a reference song (by name and artist), and th
 
 Search interface + agent progress:
 
-<img src="image.png" width="500" />
+<img src="song_radar_input.jpg" width="500" />
 
 Results sample:
 
-<img src="image-1.png" width="500" />
+<img src="song_radar_results.jpg" width="500" />
 
 ## Features
 
