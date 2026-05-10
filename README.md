@@ -14,11 +14,11 @@ Discover new music that matches the vibe of your favorite tracks!
 
 Search interface + agent progress:
 
-<img src="image.png" width="500" />
+<img src="song_radar_input.jpg" width="500" />
 
 Results sample:
 
-<img src="image-1.png" width="500" />
+<img src="song_radar_results.jpg" width="500" />
 
 ## Features
 
