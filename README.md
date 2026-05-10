@@ -10,17 +10,6 @@ Have you ever gotten frustrated over irrelevant song recommendations on streamin
 
 Discover new music that matches the vibe of your favorite tracks!
 
-## Description
-
-This project allows users to input a reference song (by name and artist), and the system will:
-
-1. Generate a detailed vibe description for the reference song.
-2. Evaluate the description quality using an LLM-as-a-judge.
-3. Find song recommendations.
-4. Generate and evaluate vibe descriptions for each recommendation.
-5. Sort recommendations based on vibe similarity using vector embeddings.
-6. Output a sorted list of top songs that match the reference song's vibe.
-
 ## Demo / User Interface
 
 Search interface + agent progress:
@@ -34,6 +23,7 @@ Results sample:
 ## Features
 
 - **Vibe-Based Discovery**: Focuses on emotional and atmospheric qualities rather than just genre or popularity.
+- **Aesthetic Profile Generation**: Generates a unique "vibe description" for each song.
 - **Real-Time Evaluation**: Uses LLM-as-a-judge for quality assessment of vibe descriptions by scoring them.
 - **Vector Embeddings**: Employs semantic similarity for accurate vibe matching.
 - **Agentic Architecture**: Built with LangGraph for robust, stateful processing.
