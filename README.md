@@ -10,22 +10,11 @@ Have you ever gotten frustrated over irrelevant song recommendations on streamin
 
 Discover new music that matches the vibe of your favorite tracks!
 
-## Description
-
-This project allows users to input a reference song (by name and artist), and the system will:
-
-1. Generate a detailed vibe description for the reference song.
-2. Evaluate the description quality using an LLM-as-a-judge.
-3. Find song recommendations.
-4. Generate and evaluate vibe descriptions for each recommendation.
-5. Sort recommendations based on vibe similarity using vector embeddings.
-6. Output a sorted list of top songs that match the reference song's vibe.
-
 ## Demo / User Interface
 
 Search interface + agent progress:
 
-<img src="image.png" width="500" />
+<img src="song_radar_input.jpg" width="500" />
 
 Results sample:
 
@@ -34,6 +23,7 @@ Results sample:
 ## Features
 
 - **Vibe-Based Discovery**: Focuses on emotional and atmospheric qualities rather than just genre or popularity.
+- **Aesthetic Profile Generation**: Generates a unique "vibe description" for each song.
 - **Real-Time Evaluation**: Uses LLM-as-a-judge for quality assessment of vibe descriptions by scoring them.
 - **Vector Embeddings**: Employs semantic similarity for accurate vibe matching.
 - **Agentic Architecture**: Built with LangGraph for robust, stateful processing.
@@ -123,9 +113,8 @@ flowchart TD
 ## Evaluation Strategy
 
 As the vibe description generated for each song is a subjective, textual aesthetic profile, the main chosen evaluation strategy is LLM-as-a-judge.
-A second judge LLM is incorporated into the agentic loop.
 The judge LLM scores the description from 1 to 10 based on the criteria specified in its system prompt.
-It most importantly evaluates accuracy and specificity: the aesthetic description must align with the song data without hallucinating details. Furthermore, it prevents generic descriptions to ensure the generated energy profile is unique enough to provide a meaningful basis for the later vector-based scoring.
+It primarily evaluates accuracy and specificity: the aesthetic description must align with the song data without hallucinating details. Furthermore, it prevents generic descriptions to ensure the generated energy profile is unique enough to provide a meaningful basis for the later vector-based scoring.
 It then suggests improvements in its feedback.
 
 Evaluations are returned as structured data containing a score and textual feedback. If the score is below the preferred threshold, the description enters a refinement loop. The workflow state maintains an iteration counter to manage token consumption. The loop exits once the evaluation passes or the iteration threshold is exceeded.
