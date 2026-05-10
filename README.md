@@ -113,9 +113,8 @@ flowchart TD
 ## Evaluation Strategy
 
 As the vibe description generated for each song is a subjective, textual aesthetic profile, the main chosen evaluation strategy is LLM-as-a-judge.
-A second judge LLM is incorporated into the agentic loop.
 The judge LLM scores the description from 1 to 10 based on the criteria specified in its system prompt.
-It most importantly evaluates accuracy and specificity: the aesthetic description must align with the song data without hallucinating details. Furthermore, it prevents generic descriptions to ensure the generated energy profile is unique enough to provide a meaningful basis for the later vector-based scoring.
+It primarily evaluates accuracy and specificity: the aesthetic description must align with the song data without hallucinating details. Furthermore, it prevents generic descriptions to ensure the generated energy profile is unique enough to provide a meaningful basis for the later vector-based scoring.
 It then suggests improvements in its feedback.
 
 Evaluations are returned as structured data containing a score and textual feedback. If the score is below the preferred threshold, the description enters a refinement loop. The workflow state maintains an iteration counter to manage token consumption. The loop exits once the evaluation passes or the iteration threshold is exceeded.
