@@ -147,6 +147,7 @@ Evaluations are returned as structured data containing a score and textual feedb
 - `models/`: AI models for description generation and evaluation.
 - `state/`: State definitions.
 - `helpers/`: Utility tools.
+- `tools/`: Tools for LLM use.
 
 ## Contributing
 
