@@ -92,6 +92,8 @@ flowchart TD
     validate -->|valid| enrich[enrich reference song]
     enrich --> vibe[analyze vibe]
     vibe --> reflect[reflect / evaluate]
+    reflect -->|fetch tags| tools[get song tags\nLast.fm API]
+    tools -->|tags returned| reflect
     reflect -->|score too low| vibe
     reflect -->|approved| recommend[get song recommendations]
     recommend -->|no results| END2([✗ End])
@@ -101,6 +103,8 @@ flowchart TD
         w_enrich[enrich song] --> w_vibe[analyze vibe]
         w_vibe -->|no description| WEND1([end])
         w_vibe -->|has description| w_reflect[reflect / evaluate]
+        w_reflect -->|fetch tags| w_tools[get song tags\nLast.fm API]
+        w_tools -->|tags returned| w_reflect
         w_reflect -->|approved| WEND2([end])
         w_reflect -->|score too low| w_vibe
     end
@@ -116,6 +120,7 @@ As the vibe description generated for each song is a subjective, textual aesthet
 The judge LLM scores the description from 1 to 10 based on the criteria specified in its system prompt.
 It primarily evaluates accuracy and specificity: the aesthetic description must align with the song data without hallucinating details. Furthermore, it prevents generic descriptions to ensure the generated energy profile is unique enough to provide a meaningful basis for the later vector-based scoring.
 It then suggests improvements in its feedback.
+Furthermore, the evaluation LLM uses the "get song tags" tool to verify the accuracy of the description.
 
 Evaluations are returned as structured data containing a score and textual feedback. If the score is below the preferred threshold, the description enters a refinement loop. The workflow state maintains an iteration counter to manage token consumption. The loop exits once the evaluation passes or the iteration threshold is exceeded.
 
@@ -142,6 +147,7 @@ Evaluations are returned as structured data containing a score and textual feedb
 - `models/`: AI models for description generation and evaluation.
 - `state/`: State definitions.
 - `helpers/`: Utility tools.
+- `tools/`: Tools for LLM use.
 
 ## Contributing
 
