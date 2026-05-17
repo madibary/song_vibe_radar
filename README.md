@@ -1,4 +1,4 @@
-# Song Vibe Radar
+# Song Vibe Radar: Agentic Vector-Based Music Recommendation System
 
 An agentic music discovery system that prioritizes the "vibes" of songs. 
 
