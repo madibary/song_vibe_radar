@@ -58,48 +58,42 @@ def _structured_eval(messages: list) -> ModelEvaluationOutput:
     return cast(ModelEvaluationOutput, response)
 
 
-def evaluate_recommendation_vibe_description(state: SubgraphState) -> dict:
-    song = state["song_data"][0]
-    messages = convert_to_messages(state["messages"])
+def _evaluate(song: dict, messages: list, threshold: float, score_key: str, feedback_key: str) -> dict:
     last = messages[-1] if messages else None
     base = _build_eval_context(song)
     recent = messages[-6:]
 
     try:
         if isinstance(last, ToolMessage):
-            # Phase 2: tool results are in context — produce structured output
             response = _structured_eval(base + recent)
-            response_text = generate_response_text(response, SUBGRAPH_EVALUATION_THRESHOLD)
-            return {"messages": [HumanMessage(content=response_text)], "feedback": response.feedback, "score": response.score}
+            response_text = generate_response_text(response, threshold)
+            return {"messages": [HumanMessage(content=response_text)], feedback_key: response.feedback, score_key: response.score}
         else:
-            # Phase 1: force at least one get_song_tags call before scoring
             ai_response = model().bind_tools([get_song_tags], tool_choice="any").invoke(base + recent)
             return {"messages": [ai_response.model_copy(update={"content": ""})]}
     except Exception as e:
         logger.exception("Error evaluating description of %s by %s. error: %s", song.get("name"), song.get("artist"), str(e))
-        return {"messages": [], "feedback": "Evaluation failed due to an error.", "score": 0}
+        return {"messages": [], feedback_key: "Evaluation failed due to an error.", score_key: 0}
+
+
+def evaluate_recommendation_vibe_description(state: SubgraphState) -> dict:
+    return _evaluate(
+        song=state["song_data"][0],
+        messages=convert_to_messages(state["messages"]),
+        threshold=SUBGRAPH_EVALUATION_THRESHOLD,
+        score_key="score",
+        feedback_key="feedback",
+    )
 
 
 def evaluate_reference_vibe_description(state: AgentState) -> dict:
-    song = state["reference_track"]
-    messages = convert_to_messages(state["messages"])
-    last = messages[-1] if messages else None
-    base = _build_eval_context(song)
-    recent = messages[-6:]
-
-    try:
-        if isinstance(last, ToolMessage):
-            # Phase 2
-            response = _structured_eval(base + recent)
-            response_text = generate_response_text(response, EVALUATION_THRESHOLD)
-            return {"messages": [HumanMessage(content=response_text)], "reference_feedback": response.feedback, "reference_score": response.score}
-        else:
-            # Phase 1: force at least one get_song_tags call before scoring
-            ai_response = model().bind_tools([get_song_tags], tool_choice="any").invoke(base + recent)
-            return {"messages": [ai_response.model_copy(update={"content": ""})]}
-    except Exception as e:
-        logger.exception("Error evaluating description of %s by %s. error: %s", song.get("name"), song.get("artist"), str(e))
-        return {"messages": [], "reference_feedback": "Evaluation failed due to an error.", "reference_score": 0}
+    return _evaluate(
+        song=state["reference_track"],
+        messages=convert_to_messages(state["messages"]),
+        threshold=EVALUATION_THRESHOLD,
+        score_key="reference_score",
+        feedback_key="reference_feedback",
+    )
         
         
 
