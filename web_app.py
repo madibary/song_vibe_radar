@@ -76,6 +76,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .bar-fill{height:100%;background:linear-gradient(90deg,#0d9488,#06b6d4);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
 .bar-pct{font-size:.7rem;color:#0d9488;font-weight:700;min-width:2.5rem;text-align:right}
 .err{color:#dc2626;text-align:center;padding:1.5rem;font-size:.9rem}
+.spotify-link{display:inline-block;margin-top:.4rem;font-size:.75rem;color:#0d9488;font-weight:600;text-decoration:none;opacity:.8}
+.spotify-link:hover{opacity:1;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -101,7 +103,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
     <div class="step" id="s-validate"><span class="dot"></span>🔍 Validating song</div>
     <div class="step" id="s-enrich"><span class="dot"></span>🌊 Gathering song information</div>
     <div class="step" id="s-vibe"><span class="dot"></span>🐚 Generating vibe description</div>
-    <div class="step" id="s-reflect"><span class="dot"></span>🦪 Evaluating description quality</div>
+    <!--EVALUATION_STEP-->
     <div class="step" id="s-recommend"><span class="dot"></span>✨ Finding similar songs</div>
     <div class="step" id="s-worker"><span class="dot"></span>🫧 Analysing recommendation vibes</div>
   </div>
@@ -118,6 +120,8 @@ const NODE_STEPS = {
   get_song_recommendations:'s-recommend',
   music_worker:            's-worker',
 };
+
+
 
 function setActive(stepId) {
   document.querySelectorAll('.step.active').forEach(el => {
@@ -175,6 +179,7 @@ function renderResults(state) {
               <div class="bar"><div class="bar-fill" data-pct="${pct}"></div></div>
               <div class="bar-pct">${pct}%</div>
             </div>` : ''}
+          <a class="spotify-link" href="https://open.spotify.com/search/${encodeURIComponent(s.name + ' ' + s.artist)}" target="_blank">▶ Listen on Spotify</a>
         </div>
       </div>`;
   });
@@ -284,8 +289,12 @@ def _serialize(state: dict) -> dict:
     }
 
 
+_EVALUATION_STEP = '<div class="step" id="s-reflect"><span class="dot"></span>🦪 Evaluating description quality</div>'
+
 async def homepage(request: Request) -> HTMLResponse:
-    return HTMLResponse(HTML)
+    evaluation_enabled = os.getenv("EVALUATION_ENABLED", "").lower() == "true"
+    html = HTML.replace("<!--EVALUATION_STEP-->", _EVALUATION_STEP if evaluation_enabled else "")
+    return HTMLResponse(html)
 
 
 async def search(request: Request) -> StreamingResponse:
