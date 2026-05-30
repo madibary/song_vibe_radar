@@ -1,3 +1,4 @@
+import os
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import convert_to_messages, AIMessage
@@ -20,6 +21,11 @@ def is_valid_reference_song(state: AgentState) -> bool:
     if "error" in state:
         return False
     return True
+
+def should_reflect(state: AgentState) -> str:
+    if os.getenv("EVALUATION_ENABLED", "").lower() != "true":
+        return "skip"
+    return "reflect"
 
 def should_continue_evaluation_loop(state: AgentState) -> str:
     messages = convert_to_messages(state.get("messages", []))
@@ -68,7 +74,7 @@ workflow.add_conditional_edges("validate_reference_song", is_valid_reference_son
     False: END
 })  
 workflow.add_edge("enrich_reference_song", "analyze_vibe")
-workflow.add_edge("analyze_vibe", "reflect")
+workflow.add_conditional_edges("analyze_vibe", should_reflect, {"reflect": "reflect", "skip": "get_song_recommendations"})
 workflow.add_edge("evaluation_tools", "reflect")
 workflow.add_conditional_edges(
     "reflect",

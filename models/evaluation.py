@@ -1,4 +1,4 @@
-from langchain_openrouter import ChatOpenRouter
+from langchain_openai import ChatOpenAI
 
 _model = None
 
@@ -6,8 +6,8 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        _model = ChatOpenRouter(
-            model="openai/gpt-oss-120b:free",
+        _model = ChatOpenAI(
+            model="gpt-4o",
             temperature=0.8,
         )
     return _model

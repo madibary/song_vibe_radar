@@ -1,3 +1,4 @@
+import os
 from langgraph.graph.state import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import convert_to_messages, AIMessage
@@ -26,9 +27,11 @@ def should_continue_evaluation_loop(state: SubgraphState) -> str:
     return "refine"
 
 def should_reflect(state: SubgraphState) -> str:
+    if os.getenv("EVALUATION_ENABLED", "").lower() != "true":
+        return "end"
     vibe_description = state["song_data"][0].get("vibe_description", "")
     if not vibe_description:
-        return "end"    
+        return "end"
     return "reflect"
 
 subgraph_builder = StateGraph(SubgraphState)

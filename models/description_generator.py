@@ -1,5 +1,5 @@
 
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 _model = None
 
@@ -7,12 +7,10 @@ _model = None
 def get_model():
     global _model
     if _model is None:
-        _model = ChatGroq(
-            model="qwen/qwen3-32b",
+        _model = ChatOpenAI(
+            model="gpt-4o-mini",
             temperature=0.6,
-            max_tokens=None,
-            timeout=None,
-            max_retries=2
+            max_retries=2,
         )
     return _model
 

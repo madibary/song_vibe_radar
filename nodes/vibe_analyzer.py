@@ -1,4 +1,3 @@
-import time
 import logging
 from langchain_core.messages import AIMessage
 from models.description_generator import model

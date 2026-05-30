@@ -23,19 +23,19 @@ HTML = """<!DOCTYPE html>
 <title>Song Radar</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f8;color:#1a1a2e;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0fdfa;color:#134e4a;min-height:100vh}
 .header{text-align:center;padding:3rem 1rem 1.5rem}
-.logo{font-size:2.8rem;display:block;margin-bottom:.5rem;animation:pulse 3s ease-in-out infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-h1{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#7c3aed,#db2777);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
-.subtitle{color:#9090a8;margin-top:.4rem;font-size:.95rem}
+.logo{font-size:2.8rem;display:block;margin-bottom:.5rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+h1{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#0d9488,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
+.subtitle{color:#0f766e;margin-top:.4rem;font-size:1.1rem;letter-spacing:.02em}
 .search-wrap{max-width:520px;margin:1.5rem auto 0;padding:0 1rem}
-.card{background:#ffffff;border:1px solid #e5e3ef;border-radius:16px;padding:1.5rem;box-shadow:0 2px 12px #7c3aed0d}
+.card{background:rgba(255,255,255,0.85);border:1px solid #2dd4bf;border-radius:16px;padding:1.5rem;box-shadow:0 2px 16px #0d948812}
 .inputs{display:flex;flex-direction:column;gap:.65rem;margin-bottom:.9rem}
-input{width:100%;padding:.8rem 1.1rem;background:#faf9fc;border:1px solid #ddd9ea;border-radius:10px;color:#1a1a2e;font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s}
-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px #7c3aed18}
-input::placeholder{color:#b8b4cc}
-button{width:100%;padding:.85rem;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.02em}
+input{width:100%;padding:.8rem 1.1rem;background:#f0fdfa;border:1px solid #14b8a6;border-radius:10px;color:#134e4a;font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:#0d9488;box-shadow:0 0 0 3px #0d948820}
+input::placeholder{color:#14b8a6}
+button{width:100%;padding:.85rem;background:linear-gradient(135deg,#0d9488,#06b6d4);border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.04em}
 button:hover{opacity:.88}
 button:active{transform:scale(.98)}
 button:disabled{opacity:.45;cursor:not-allowed}
@@ -44,66 +44,66 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .progress-wrap{max-width:520px;margin:1.25rem auto 0;padding:0 1rem;display:none}
 .progress-wrap.show{display:block}
 .steps{display:flex;flex-direction:column;gap:0}
-.step{display:flex;align-items:center;gap:.85rem;padding:.55rem 0;color:#c5c0d8;font-size:.875rem;transition:color .3s}
-.step.active{color:#7c3aed}
-.step.done{color:#a09cb8}
-.dot{width:7px;height:7px;border-radius:50%;background:#e5e3ef;flex-shrink:0;transition:background .3s,box-shadow .3s}
-.step.active .dot{background:#7c3aed;box-shadow:0 0 8px #7c3aed55;animation:blink 1.2s ease-in-out infinite}
-.step.done .dot{background:#b8b4cc}
+.step{display:flex;align-items:center;gap:.85rem;padding:.55rem 0;color:#2dd4bf;font-size:.875rem;transition:color .3s}
+.step.active{color:#0d9488}
+.step.done{color:#0f766e}
+.dot{width:7px;height:7px;border-radius:50%;background:#ccfbf1;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.step.active .dot{background:#0d9488;box-shadow:0 0 8px #0d948866;animation:blink 1.2s ease-in-out infinite}
+.step.done .dot{background:#5eead4}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* results */
 .results-wrap{max-width:680px;margin:1.5rem auto 4rem;padding:0 1rem;display:none}
 .results-wrap.show{display:block}
 .ref-card{margin-bottom:1.25rem}
-.chip{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7c3aed;background:#7c3aed12;padding:.2rem .55rem;border-radius:5px;margin-bottom:.6rem}
-.ref-name{font-size:1.35rem;font-weight:700;color:#1a1a2e}
-.ref-artist{color:#9090a8;margin-top:.15rem;font-size:.9rem}
-.vibe-quote{color:#6b6880;margin-top:.85rem;font-style:italic;line-height:1.65;font-size:.875rem;border-left:2px solid #e5e3ef;padding-left:.85rem}
-.recs-label{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9090a8;margin-bottom:.85rem}
+.chip{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0d9488;background:#ccfbf1;padding:.2rem .55rem;border-radius:5px;margin-bottom:.6rem}
+.ref-name{font-size:1.35rem;font-weight:700;color:#134e4a}
+.ref-artist{color:#0f766e;margin-top:.15rem;font-size:.9rem}
+.vibe-quote{color:#0f766e;margin-top:.85rem;font-style:italic;line-height:1.65;font-size:.875rem;border-left:2px solid #99f6e4;padding-left:.85rem}
+.recs-label{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5eead4;margin-bottom:.85rem}
 .song-list{display:flex;flex-direction:column;gap:.65rem}
 .song-card{display:flex;align-items:flex-start;gap:1rem;transition:border-color .2s}
-.song-card:hover{border-color:#ddd9ea}
-.rank{font-size:1.4rem;font-weight:800;color:#ddd9ea;width:2rem;flex-shrink:0;text-align:right;line-height:1.2;margin-top:.05rem}
-.rank.gold{background:linear-gradient(135deg,#db2777,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.song-card:hover{border-color:#5eead4}
+.rank{font-size:1.4rem;font-weight:800;color:#5eead4;width:2rem;flex-shrink:0;text-align:right;line-height:1.2;margin-top:.05rem}
+.rank.gold{background:linear-gradient(135deg,#0d9488,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .info{flex:1}
-.song-name{font-weight:600;font-size:.95rem;color:#1a1a2e}
-.best-badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;padding:.15rem .45rem;border-radius:4px;margin-left:.45rem;vertical-align:middle}
-.song-artist{color:#9090a8;font-size:.825rem;margin-top:.1rem}
-.song-vibe{color:#6b6880;font-size:.8rem;margin-top:.45rem;line-height:1.55}
+.song-name{font-weight:600;font-size:.95rem;color:#134e4a}
+.best-badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#0d9488,#06b6d4);color:#fff;padding:.15rem .45rem;border-radius:4px;margin-left:.45rem;vertical-align:middle}
+.song-artist{color:#0f766e;font-size:.825rem;margin-top:.1rem}
+.song-vibe{color:#0f766e;font-size:.8rem;margin-top:.45rem;line-height:1.55}
 .bar-row{display:flex;align-items:center;gap:.5rem;margin-top:.5rem}
-.bar{flex:1;height:3px;background:#e5e3ef;border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#db2777);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bar-pct{font-size:.7rem;color:#7c3aed;font-weight:700;min-width:2.5rem;text-align:right}
+.bar{flex:1;height:3px;background:#ccfbf1;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#0d9488,#06b6d4);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.bar-pct{font-size:.7rem;color:#0d9488;font-weight:700;min-width:2.5rem;text-align:right}
 .err{color:#dc2626;text-align:center;padding:1.5rem;font-size:.9rem}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <span class="logo">🎵</span>
+  <span class="logo">🐚</span>
   <h1>Song Radar</h1>
-  <p class="subtitle">Find songs with the same vibe</p>
+  <p class="subtitle">🌊 find songs with the same vibe 🫧</p>
 </div>
 
 <div class="search-wrap">
   <div class="card">
     <div class="inputs">
-      <input id="track" type="text" placeholder="Track name" autocomplete="off">
-      <input id="artist" type="text" placeholder="Artist name" autocomplete="off">
+      <input id="track" type="text" placeholder="🎵 Track name" autocomplete="off">
+      <input id="artist" type="text" placeholder="🦪 Artist name" autocomplete="off">
     </div>
-    <button id="btn" onclick="doSearch()">Find my vibe →</button>
+    <button id="btn" onclick="doSearch()">🐚 Find my vibe</button>
   </div>
 </div>
 
 <div class="progress-wrap card" id="progress">
   <div class="steps">
-    <div class="step" id="s-validate"><span class="dot"></span>Validating song</div>
-    <div class="step" id="s-enrich"><span class="dot"></span>Gathering song information</div>
-    <div class="step" id="s-vibe"><span class="dot"></span>Generating vibe description</div>
-    <div class="step" id="s-reflect"><span class="dot"></span>Evaluating description quality</div>
-    <div class="step" id="s-recommend"><span class="dot"></span>Finding similar songs</div>
-    <div class="step" id="s-worker"><span class="dot"></span>Analysing recommendation vibes</div>
+    <div class="step" id="s-validate"><span class="dot"></span>🔍 Validating song</div>
+    <div class="step" id="s-enrich"><span class="dot"></span>🌊 Gathering song information</div>
+    <div class="step" id="s-vibe"><span class="dot"></span>🐚 Generating vibe description</div>
+    <div class="step" id="s-reflect"><span class="dot"></span>🦪 Evaluating description quality</div>
+    <div class="step" id="s-recommend"><span class="dot"></span>✨ Finding similar songs</div>
+    <div class="step" id="s-worker"><span class="dot"></span>🫧 Analysing recommendation vibes</div>
   </div>
 </div>
 
