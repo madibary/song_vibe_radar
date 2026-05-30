@@ -4,6 +4,7 @@ from langgraph.prebuilt import ToolNode
 from langchain_core.messages import convert_to_messages, AIMessage
 from helpers.thresholds import SUBGRAPH_EVALUATION_THRESHOLD
 from nodes.analyze_vibe import analyze_recommendation_vibe
+from nodes.cache_vibe import cache_recommendation_vibe
 from nodes.evaluation import evaluate_recommendation_vibe_description
 from nodes.enrich_song import enrich_recommendation_song
 from state.subgraph_state import SubgraphState
@@ -29,6 +30,8 @@ def should_continue_evaluation_loop(state: SubgraphState) -> str:
 def should_reflect(state: SubgraphState) -> str:
     if os.getenv("EVALUATION_ENABLED", "").lower() != "true":
         return "end"
+    if state["song_data"][0].get("_from_cache"):
+        return "end"
     vibe_description = state["song_data"][0].get("vibe_description", "")
     if not vibe_description:
         return "end"
@@ -40,6 +43,7 @@ subgraph_builder.add_node("enrich_song", enrich_recommendation_song, retry_polic
 subgraph_builder.add_node("analyze_vibe", analyze_recommendation_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 subgraph_builder.add_node("reflect", evaluate_recommendation_vibe_description, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 subgraph_builder.add_node("evaluation_tools", ToolNode([get_song_tags]))
+subgraph_builder.add_node("cache_recommendation_vibe", cache_recommendation_vibe)
 
 subgraph_builder.set_entry_point("enrich_song")
 subgraph_builder.add_edge("enrich_song", "analyze_vibe")
@@ -49,7 +53,7 @@ subgraph_builder.add_conditional_edges(
     should_reflect,
     {
         "reflect": "reflect",
-        "end": END
+        "end": "cache_recommendation_vibe",
     }
 )
 
@@ -58,9 +62,10 @@ subgraph_builder.add_conditional_edges(
     should_continue_evaluation_loop,
     {
         "refine": "analyze_vibe",
-        "end": END,
+        "end": "cache_recommendation_vibe",
         "tools": "evaluation_tools",
     }
 )
+subgraph_builder.add_edge("cache_recommendation_vibe", END)
 
 subgraph = subgraph_builder.compile()

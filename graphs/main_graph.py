@@ -7,7 +7,6 @@ from helpers.thresholds import EVALUATION_THRESHOLD
 from nodes.analyze_vibe import analyze_reference_vibe
 from nodes.evaluation import evaluate_reference_vibe_description
 from langgraph.types import RetryPolicy
-from nodes.validate_song import validate_song
 from state.agent_state import AgentState
 from nodes.map_songs import map_songs
 from nodes.enrich_song import enrich_reference_song
@@ -15,15 +14,13 @@ from nodes.reduce_songs import reduce_enrichment_data
 from langgraph.graph.state import StateGraph
 from nodes.song_recommendations import get_song_recommendations
 from nodes.vector_validation import validate_by_vectors
+from nodes.cache_vibe import cache_reference_vibe
 from tools.get_song_tags import get_song_tags
-
-def is_valid_reference_song(state: AgentState) -> bool:
-    if "error" in state:
-        return False
-    return True
 
 def should_reflect(state: AgentState) -> str:
     if os.getenv("EVALUATION_ENABLED", "").lower() != "true":
+        return "skip"
+    if state.get("reference_track", {}).get("_from_cache"):
         return "skip"
     return "reflect"
 
@@ -54,11 +51,11 @@ def should_reduce_songs(state: AgentState) -> str:
 workflow = StateGraph(AgentState)
 
 # enrichment and reflection on reference song
-workflow.add_node("validate_reference_song", validate_song, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 workflow.add_node("enrich_reference_song", enrich_reference_song, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 workflow.add_node("analyze_vibe", analyze_reference_vibe, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 workflow.add_node("reflect", evaluate_reference_vibe_description, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
 workflow.add_node("evaluation_tools", ToolNode([get_song_tags]))
+workflow.add_node("cache_reference_vibe", cache_reference_vibe)
 
 # enrichment and processing of recommended songs
 workflow.add_node("get_song_recommendations", get_song_recommendations, retry_policy=RetryPolicy(max_attempts=2, initial_interval=1.0))
@@ -68,23 +65,20 @@ workflow.add_node("map_songs", map_songs)
 workflow.add_node("music_worker", subgraph)
 
 
-workflow.set_entry_point("validate_reference_song")
-workflow.add_conditional_edges("validate_reference_song", is_valid_reference_song, {
-    True: "enrich_reference_song",
-    False: END
-})  
+workflow.set_entry_point("enrich_reference_song")
 workflow.add_edge("enrich_reference_song", "analyze_vibe")
-workflow.add_conditional_edges("analyze_vibe", should_reflect, {"reflect": "reflect", "skip": "get_song_recommendations"})
+workflow.add_conditional_edges("analyze_vibe", should_reflect, {"reflect": "reflect", "skip": "cache_reference_vibe"})
 workflow.add_edge("evaluation_tools", "reflect")
 workflow.add_conditional_edges(
     "reflect",
     should_continue_evaluation_loop,
     {
         "refine": "analyze_vibe",
-        "end": "get_song_recommendations",
+        "end": "cache_reference_vibe",
         "tools": "evaluation_tools",
     }
 )
+workflow.add_edge("cache_reference_vibe", "get_song_recommendations")
 workflow.add_conditional_edges("get_song_recommendations", map_songs, ["music_worker", END])
 workflow.add_conditional_edges("music_worker", should_reduce_songs , {
     "reduce": "reduce_enrichment_data",

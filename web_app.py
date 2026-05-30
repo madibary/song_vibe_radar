@@ -3,9 +3,12 @@ import json
 import logging
 import os
 import queue
+import re
 import threading
 from typing import cast
 
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -14,6 +17,31 @@ from starlette.routing import Route
 
 load_dotenv()
 logging.basicConfig(level=logging.WARNING)
+
+_spotify_client = None
+
+
+def _get_spotify() -> spotipy.Spotify:
+    global _spotify_client
+    if _spotify_client is None:
+        _spotify_client = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+            client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+        ))
+    return _spotify_client
+
+
+def _resolve_spotify_url(url: str) -> tuple[str, str]:
+    match = re.search(r'spotify\.com/track/([A-Za-z0-9]+)', url)
+    if not match:
+        raise ValueError("Invalid Spotify track URL")
+    track_id = match.group(1)
+    track = _get_spotify().track(track_id)
+    if not track:
+        raise ValueError("Track not found on Spotify")
+    name = track["name"]
+    artist = track["artists"][0]["name"]
+    return name, artist
 
 HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -91,16 +119,15 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div class="search-wrap">
   <div class="card">
     <div class="inputs">
-      <input id="track" type="text" placeholder="🎵 Track name" autocomplete="off">
-      <input id="artist" type="text" placeholder="🦪 Artist name" autocomplete="off">
+      <input id="spotify_url" type="text" placeholder="🎵 Paste a Spotify track link" autocomplete="off" oninput="onUrlInput()">
     </div>
+    <div id="track-preview" style="display:none;margin-bottom:.5rem;padding:.55rem .85rem;background:#ccfbf1;border-radius:8px;font-size:.875rem;color:#0f766e;font-weight:600"></div>
     <button id="btn" onclick="doSearch()">🐚 Find my vibe</button>
   </div>
 </div>
 
 <div class="progress-wrap card" id="progress">
   <div class="steps">
-    <div class="step" id="s-validate"><span class="dot"></span>🔍 Validating song</div>
     <div class="step" id="s-enrich"><span class="dot"></span>🌊 Gathering song information</div>
     <div class="step" id="s-vibe"><span class="dot"></span>🐚 Generating vibe description</div>
     <!--EVALUATION_STEP-->
@@ -113,7 +140,6 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 <script>
 const NODE_STEPS = {
-  validate_reference_song: 's-validate',
   enrich_reference_song:   's-enrich',
   analyze_vibe:            's-vibe',
   reflect:                 's-reflect',
@@ -196,10 +222,32 @@ function renderResults(state) {
   }));
 }
 
+let _resolveTimer = null;
+function onUrlInput() {
+  const url = document.getElementById('spotify_url').value.trim();
+  const preview = document.getElementById('track-preview');
+  preview.style.display = 'none';
+  clearTimeout(_resolveTimer);
+  if (!url.includes('spotify.com/track/')) return;
+  _resolveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/resolve-track', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({spotify_url: url})
+      });
+      const data = await res.json();
+      if (data.name) {
+        preview.textContent = '🎵 ' + data.name + ' · ' + data.artist;
+        preview.style.display = 'block';
+      }
+    } catch(e) {}
+  }, 400);
+}
+
 async function doSearch() {
-  const track  = document.getElementById('track').value.trim();
-  const artist = document.getElementById('artist').value.trim();
-  if (!track || !artist) return;
+  const spotify_url = document.getElementById('spotify_url').value.trim();
+  if (!spotify_url) return;
 
   const btn = document.getElementById('btn');
   btn.disabled = true; btn.textContent = 'Scanning…';
@@ -215,7 +263,7 @@ async function doSearch() {
     const resp = await fetch('/search', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({track, artist})
+      body: JSON.stringify({spotify_url})
     });
 
     const reader  = resp.body.getReader();
@@ -291,6 +339,16 @@ def _serialize(state: dict) -> dict:
 
 _EVALUATION_STEP = '<div class="step" id="s-reflect"><span class="dot"></span>🦪 Evaluating description quality</div>'
 
+async def resolve_track(request: Request):
+    from starlette.responses import JSONResponse
+    data = await request.json()
+    try:
+        name, artist = _resolve_spotify_url((data.get("spotify_url") or "").strip())
+        return JSONResponse({"name": name, "artist": artist})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
 async def homepage(request: Request) -> HTMLResponse:
     evaluation_enabled = os.getenv("EVALUATION_ENABLED", "").lower() == "true"
     html = HTML.replace("<!--EVALUATION_STEP-->", _EVALUATION_STEP if evaluation_enabled else "")
@@ -299,8 +357,13 @@ async def homepage(request: Request) -> HTMLResponse:
 
 async def search(request: Request) -> StreamingResponse:
     data = await request.json()
-    track_name = (data.get("track") or "").strip()
-    artist_name = (data.get("artist") or "").strip()
+    try:
+        track_name, artist_name = _resolve_spotify_url((data.get("spotify_url") or "").strip())
+    except Exception as e:
+        async def err():
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        return StreamingResponse(err(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache"})
 
     async def stream():
         from state.agent_state import AgentState
@@ -347,5 +410,6 @@ async def search(request: Request) -> StreamingResponse:
 
 app = Starlette(routes=[
     Route("/", homepage),
+    Route("/resolve-track", resolve_track, methods=["POST"]),
     Route("/search", search, methods=["POST"]),
 ])
