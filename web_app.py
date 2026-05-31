@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.WARNING)
 
 from graphs.main_graph import graph as _graph
 from state.agent_state import AgentState as _AgentState
+from helpers.rate_limit import check_ip_limit, check_global_budget
 
 _search_semaphore = asyncio.Semaphore(3)
 
@@ -34,6 +35,13 @@ def _get_spotify() -> spotipy.Spotify:
             client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
         ))
     return _spotify_client
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def _resolve_spotify_url(url: str) -> tuple[str, str]:
@@ -373,14 +381,23 @@ async def homepage(request: Request) -> HTMLResponse:
 
 
 async def search(request: Request) -> StreamingResponse:
+    def _sse_error(msg: str) -> StreamingResponse:
+        async def _body():
+            yield f"data: {json.dumps({'type': 'error', 'message': msg})}\n\n"
+        return StreamingResponse(_body(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache"})
+
+    if not check_global_budget():
+        return _sse_error("The service is temporarily unavailable. Please try again later.")
+
+    if not check_ip_limit(_client_ip(request)):
+        return _sse_error("Too many requests. Please wait a while before trying again.")
+
     data = await request.json()
     try:
         track_name, artist_name = _resolve_spotify_url((data.get("spotify_url") or "").strip())
     except Exception as e:
-        async def err():
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-        return StreamingResponse(err(), media_type="text/event-stream",
-                                 headers={"Cache-Control": "no-cache"})
+        return _sse_error(str(e))
 
     async def stream():
         async with _search_semaphore:
