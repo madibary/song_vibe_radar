@@ -402,6 +402,7 @@ async def search(request: Request) -> StreamingResponse:
     async def stream():
         async with _search_semaphore:
             q: queue.Queue = queue.Queue()
+            cancelled = threading.Event()
 
             def run():
                 initial: dict = {
@@ -412,6 +413,8 @@ async def search(request: Request) -> StreamingResponse:
                 accumulated = initial.copy()
                 try:
                     for updates in _graph.stream(cast(_AgentState, initial), stream_mode="updates"):
+                        if cancelled.is_set():
+                            return
                         for node_name, update in updates.items():
                             if update is not None:
                                 accumulated.update(update)
@@ -422,16 +425,20 @@ async def search(request: Request) -> StreamingResponse:
 
             threading.Thread(target=run, daemon=True).start()
 
-            while True:
-                kind, a, b = await asyncio.to_thread(q.get)
-                if kind == "progress":
-                    yield f"data: {json.dumps({'type': 'progress', 'node': a})}\n\n"
-                elif kind == "done":
-                    yield f"data: {json.dumps({'type': 'done', 'state': _serialize(b)})}\n\n"
-                    break
-                elif kind == "error":
-                    yield f"data: {json.dumps({'type': 'error', 'message': a})}\n\n"
-                    break
+            try:
+                while True:
+                    kind, a, b = await asyncio.to_thread(q.get)
+                    if kind == "progress":
+                        yield f"data: {json.dumps({'type': 'progress', 'node': a})}\n\n"
+                    elif kind == "done":
+                        yield f"data: {json.dumps({'type': 'done', 'state': _serialize(b)})}\n\n"
+                        break
+                    elif kind == "error":
+                        yield f"data: {json.dumps({'type': 'error', 'message': a})}\n\n"
+                        break
+            except (GeneratorExit, asyncio.CancelledError):
+                cancelled.set()
+                raise
 
     return StreamingResponse(
         stream(),
