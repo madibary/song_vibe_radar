@@ -3,9 +3,12 @@ import json
 import logging
 import os
 import queue
+import re
 import threading
 from typing import cast
 
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -15,6 +18,36 @@ from starlette.routing import Route
 load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 
+from graphs.main_graph import graph as _graph
+from state.agent_state import AgentState as _AgentState
+
+_search_semaphore = asyncio.Semaphore(3)
+
+_spotify_client = None
+
+
+def _get_spotify() -> spotipy.Spotify:
+    global _spotify_client
+    if _spotify_client is None:
+        _spotify_client = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+            client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+        ))
+    return _spotify_client
+
+
+def _resolve_spotify_url(url: str) -> tuple[str, str]:
+    match = re.search(r'spotify\.com/track/([A-Za-z0-9]+)', url)
+    if not match:
+        raise ValueError("Invalid Spotify track URL")
+    track_id = match.group(1)
+    track = _get_spotify().track(track_id)
+    if not track:
+        raise ValueError("Track not found on Spotify")
+    name = track["name"]
+    artist = track["artists"][0]["name"]
+    return name, artist
+
 HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,19 +56,19 @@ HTML = """<!DOCTYPE html>
 <title>Song Radar</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f8;color:#1a1a2e;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4ff;color:#0f172a;min-height:100vh}
 .header{text-align:center;padding:3rem 1rem 1.5rem}
-.logo{font-size:2.8rem;display:block;margin-bottom:.5rem;animation:pulse 3s ease-in-out infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-h1{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#7c3aed,#db2777);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
-.subtitle{color:#9090a8;margin-top:.4rem;font-size:.95rem}
-.search-wrap{max-width:520px;margin:1.5rem auto 0;padding:0 1rem}
-.card{background:#ffffff;border:1px solid #e5e3ef;border-radius:16px;padding:1.5rem;box-shadow:0 2px 12px #7c3aed0d}
+.logo{font-size:2.8rem;display:block;margin-bottom:.5rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+h1{font-size:2.4rem;font-weight:800;background:linear-gradient(135deg,#1e3a8a,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.02em}
+.subtitle{color:#1d4ed8;margin-top:.4rem;font-size:1.1rem;letter-spacing:.02em}
+.search-wrap{max-width:520px;margin:1.5rem auto 1rem;padding:0}
+.card{background:rgba(255,255,255,0.9);border:1px solid #bfdbfe;border-radius:16px;padding:1.5rem;box-shadow:0 2px 16px #1e40af0e}
 .inputs{display:flex;flex-direction:column;gap:.65rem;margin-bottom:.9rem}
-input{width:100%;padding:.8rem 1.1rem;background:#faf9fc;border:1px solid #ddd9ea;border-radius:10px;color:#1a1a2e;font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s}
-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px #7c3aed18}
-input::placeholder{color:#b8b4cc}
-button{width:100%;padding:.85rem;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.02em}
+input{width:100%;padding:.8rem 1.1rem;background:#f8fafc;border:1px solid #93c5fd;border-radius:10px;color:#0f172a;font-size:.95rem;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus{border-color:#1e40af;box-shadow:0 0 0 3px #1e40af18}
+input::placeholder{color:#60a5fa}
+button{width:100%;padding:.85rem;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.04em}
 button:hover{opacity:.88}
 button:active{transform:scale(.98)}
 button:disabled{opacity:.45;cursor:not-allowed}
@@ -44,66 +77,67 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .progress-wrap{max-width:520px;margin:1.25rem auto 0;padding:0 1rem;display:none}
 .progress-wrap.show{display:block}
 .steps{display:flex;flex-direction:column;gap:0}
-.step{display:flex;align-items:center;gap:.85rem;padding:.55rem 0;color:#c5c0d8;font-size:.875rem;transition:color .3s}
-.step.active{color:#7c3aed}
-.step.done{color:#a09cb8}
-.dot{width:7px;height:7px;border-radius:50%;background:#e5e3ef;flex-shrink:0;transition:background .3s,box-shadow .3s}
-.step.active .dot{background:#7c3aed;box-shadow:0 0 8px #7c3aed55;animation:blink 1.2s ease-in-out infinite}
-.step.done .dot{background:#b8b4cc}
+.step{display:flex;align-items:center;gap:.85rem;padding:.55rem 0;color:#93c5fd;font-size:.875rem;transition:color .3s}
+.step.active{color:#1e40af}
+.step.done{color:#3b82f6}
+.dot{width:7px;height:7px;border-radius:50%;background:#dbeafe;flex-shrink:0;transition:background .3s,box-shadow .3s}
+.step.active .dot{background:#1e40af;box-shadow:0 0 8px #1e40af55;animation:blink 1.2s ease-in-out infinite}
+.step.done .dot{background:#60a5fa}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* results */
 .results-wrap{max-width:680px;margin:1.5rem auto 4rem;padding:0 1rem;display:none}
 .results-wrap.show{display:block}
 .ref-card{margin-bottom:1.25rem}
-.chip{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7c3aed;background:#7c3aed12;padding:.2rem .55rem;border-radius:5px;margin-bottom:.6rem}
-.ref-name{font-size:1.35rem;font-weight:700;color:#1a1a2e}
-.ref-artist{color:#9090a8;margin-top:.15rem;font-size:.9rem}
-.vibe-quote{color:#6b6880;margin-top:.85rem;font-style:italic;line-height:1.65;font-size:.875rem;border-left:2px solid #e5e3ef;padding-left:.85rem}
-.recs-label{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9090a8;margin-bottom:.85rem}
+.chip{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#1e40af;background:#dbeafe;padding:.2rem .55rem;border-radius:5px;margin-bottom:.6rem}
+.ref-name{font-size:1.35rem;font-weight:700;color:#0f172a}
+.ref-artist{color:#3b82f6;margin-top:.15rem;font-size:.9rem}
+.vibe-quote{color:#1e3a8a;margin-top:.85rem;font-style:italic;line-height:1.65;font-size:.875rem;border-left:2px solid #bfdbfe;padding-left:.85rem}
+.recs-label{font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#60a5fa;margin-bottom:.85rem}
 .song-list{display:flex;flex-direction:column;gap:.65rem}
 .song-card{display:flex;align-items:flex-start;gap:1rem;transition:border-color .2s}
-.song-card:hover{border-color:#ddd9ea}
-.rank{font-size:1.4rem;font-weight:800;color:#ddd9ea;width:2rem;flex-shrink:0;text-align:right;line-height:1.2;margin-top:.05rem}
-.rank.gold{background:linear-gradient(135deg,#db2777,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.song-card:hover{border-color:#93c5fd}
+.rank{font-size:1.4rem;font-weight:800;color:#bfdbfe;width:2rem;flex-shrink:0;text-align:right;line-height:1.2;margin-top:.05rem}
+.rank.gold{background:linear-gradient(135deg,#1e3a8a,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .info{flex:1}
-.song-name{font-weight:600;font-size:.95rem;color:#1a1a2e}
-.best-badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;padding:.15rem .45rem;border-radius:4px;margin-left:.45rem;vertical-align:middle}
-.song-artist{color:#9090a8;font-size:.825rem;margin-top:.1rem}
-.song-vibe{color:#6b6880;font-size:.8rem;margin-top:.45rem;line-height:1.55}
+.song-name{font-weight:600;font-size:.95rem;color:#0f172a}
+.best-badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:.15rem .45rem;border-radius:4px;margin-left:.45rem;vertical-align:middle}
+.song-artist{color:#3b82f6;font-size:.825rem;margin-top:.1rem}
+.song-vibe{color:#1e3a8a;font-size:.8rem;margin-top:.45rem;line-height:1.55}
 .bar-row{display:flex;align-items:center;gap:.5rem;margin-top:.5rem}
-.bar{flex:1;height:3px;background:#e5e3ef;border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#db2777);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
-.bar-pct{font-size:.7rem;color:#7c3aed;font-weight:700;min-width:2.5rem;text-align:right}
+.bar{flex:1;height:3px;background:#dbeafe;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#1e3a8a,#2563eb);border-radius:2px;width:0;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+.bar-pct{font-size:.7rem;color:#1e40af;font-weight:700;min-width:2.5rem;text-align:right}
 .err{color:#dc2626;text-align:center;padding:1.5rem;font-size:.9rem}
+.spotify-link{display:inline-block;margin-top:.4rem;font-size:.75rem;color:#1e40af;font-weight:600;text-decoration:none;opacity:.8}
+.spotify-link:hover{opacity:1;text-decoration:underline}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <span class="logo">🎵</span>
+  <span class="logo">🐚</span>
   <h1>Song Radar</h1>
-  <p class="subtitle">Find songs with the same vibe</p>
+  <p class="subtitle">🌊 find songs with the same vibe 🫧</p>
 </div>
 
 <div class="search-wrap">
   <div class="card">
     <div class="inputs">
-      <input id="track" type="text" placeholder="Track name" autocomplete="off">
-      <input id="artist" type="text" placeholder="Artist name" autocomplete="off">
+      <input id="spotify_url" type="text" placeholder="🎵 Paste a Spotify track link" autocomplete="off" oninput="onUrlInput()">
     </div>
-    <button id="btn" onclick="doSearch()">Find my vibe →</button>
+    <div id="track-preview" style="display:none;margin-bottom:.5rem;padding:.55rem .85rem;background:#dbeafe;border-radius:8px;font-size:.875rem;color:#1e3a8a;font-weight:600"></div>
+    <button id="btn" onclick="doSearch()">🐚 Find my vibe</button>
   </div>
 </div>
 
 <div class="progress-wrap card" id="progress">
   <div class="steps">
-    <div class="step" id="s-validate"><span class="dot"></span>Validating song</div>
-    <div class="step" id="s-enrich"><span class="dot"></span>Gathering song information</div>
-    <div class="step" id="s-vibe"><span class="dot"></span>Generating vibe description</div>
-    <div class="step" id="s-reflect"><span class="dot"></span>Evaluating description quality</div>
-    <div class="step" id="s-recommend"><span class="dot"></span>Finding similar songs</div>
-    <div class="step" id="s-worker"><span class="dot"></span>Analysing recommendation vibes</div>
+    <div class="step" id="s-enrich"><span class="dot"></span>🌊 Gathering song information</div>
+    <div class="step" id="s-vibe"><span class="dot"></span>🐚 Generating vibe description</div>
+    <!--EVALUATION_STEP-->
+    <div class="step" id="s-recommend"><span class="dot"></span>✨ Finding similar songs</div>
+    <div class="step" id="s-worker"><span class="dot"></span>🫧 Analysing recommendation vibes</div>
   </div>
 </div>
 
@@ -111,13 +145,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 
 <script>
 const NODE_STEPS = {
-  validate_reference_song: 's-validate',
   enrich_reference_song:   's-enrich',
   analyze_vibe:            's-vibe',
   reflect:                 's-reflect',
   get_song_recommendations:'s-recommend',
   music_worker:            's-worker',
 };
+
+
 
 function setActive(stepId) {
   document.querySelectorAll('.step.active').forEach(el => {
@@ -175,6 +210,7 @@ function renderResults(state) {
               <div class="bar"><div class="bar-fill" data-pct="${pct}"></div></div>
               <div class="bar-pct">${pct}%</div>
             </div>` : ''}
+          <a class="spotify-link" href="https://open.spotify.com/search/${encodeURIComponent(s.name + ' ' + s.artist)}" target="_blank">▶ Listen on Spotify</a>
         </div>
       </div>`;
   });
@@ -191,10 +227,32 @@ function renderResults(state) {
   }));
 }
 
+let _resolveTimer = null;
+function onUrlInput() {
+  const url = document.getElementById('spotify_url').value.trim();
+  const preview = document.getElementById('track-preview');
+  preview.style.display = 'none';
+  clearTimeout(_resolveTimer);
+  if (!url.includes('spotify.com/track/')) return;
+  _resolveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/resolve-track', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({spotify_url: url})
+      });
+      const data = await res.json();
+      if (data.name) {
+        preview.textContent = '🎵 ' + data.name + ' · ' + data.artist;
+        preview.style.display = 'block';
+      }
+    } catch(e) {}
+  }, 400);
+}
+
 async function doSearch() {
-  const track  = document.getElementById('track').value.trim();
-  const artist = document.getElementById('artist').value.trim();
-  if (!track || !artist) return;
+  const spotify_url = document.getElementById('spotify_url').value.trim();
+  if (!spotify_url) return;
 
   const btn = document.getElementById('btn');
   btn.disabled = true; btn.textContent = 'Scanning…';
@@ -210,7 +268,7 @@ async function doSearch() {
     const resp = await fetch('/search', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({track, artist})
+      body: JSON.stringify({spotify_url})
     });
 
     const reader  = resp.body.getReader();
@@ -284,50 +342,72 @@ def _serialize(state: dict) -> dict:
     }
 
 
+_EVALUATION_STEP = '<div class="step" id="s-reflect"><span class="dot"></span>🦪 Evaluating description quality</div>'
+
+async def resolve_track(request: Request):
+    from starlette.responses import JSONResponse
+    data = await request.json()
+    try:
+        name, artist = _resolve_spotify_url((data.get("spotify_url") or "").strip())
+        return JSONResponse({"name": name, "artist": artist})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+async def health(request: Request):
+    from starlette.responses import JSONResponse
+    return JSONResponse({"status": "ok"})
+
+
 async def homepage(request: Request) -> HTMLResponse:
-    return HTMLResponse(HTML)
+    evaluation_enabled = os.getenv("EVALUATION_ENABLED", "").lower() == "true"
+    html = HTML.replace("<!--EVALUATION_STEP-->", _EVALUATION_STEP if evaluation_enabled else "")
+    return HTMLResponse(html)
 
 
 async def search(request: Request) -> StreamingResponse:
     data = await request.json()
-    track_name = (data.get("track") or "").strip()
-    artist_name = (data.get("artist") or "").strip()
+    try:
+        track_name, artist_name = _resolve_spotify_url((data.get("spotify_url") or "").strip())
+    except Exception as e:
+        async def err():
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        return StreamingResponse(err(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache"})
 
     async def stream():
-        from state.agent_state import AgentState
-        from graphs.main_graph import graph
+        async with _search_semaphore:
+            q: queue.Queue = queue.Queue()
 
-        q: queue.Queue = queue.Queue()
+            def run():
+                initial: dict = {
+                    "reference_track": {"name": track_name, "artist": artist_name},
+                    "reference_iterations": 0,
+                    "reference_feedback": "",
+                }
+                accumulated = initial.copy()
+                try:
+                    for updates in _graph.stream(cast(_AgentState, initial), stream_mode="updates"):
+                        for node_name, update in updates.items():
+                            if update is not None:
+                                accumulated.update(update)
+                            q.put(("progress", node_name, None))
+                    q.put(("done", None, accumulated))
+                except Exception as exc:
+                    q.put(("error", str(exc), None))
 
-        def run():
-            initial: dict = {
-                "reference_track": {"name": track_name, "artist": artist_name},
-                "reference_iterations": 0,
-                "reference_feedback": "",
-            }
-            accumulated = initial.copy()
-            try:
-                for updates in graph.stream(cast(AgentState, initial), stream_mode="updates"):
-                    for node_name, update in updates.items():
-                        if update is not None:
-                            accumulated.update(update)
-                        q.put(("progress", node_name, None))
-                q.put(("done", None, accumulated))
-            except Exception as exc:
-                q.put(("error", str(exc), None))
+            threading.Thread(target=run, daemon=True).start()
 
-        threading.Thread(target=run, daemon=True).start()
-
-        while True:
-            kind, a, b = await asyncio.to_thread(q.get)
-            if kind == "progress":
-                yield f"data: {json.dumps({'type': 'progress', 'node': a})}\n\n"
-            elif kind == "done":
-                yield f"data: {json.dumps({'type': 'done', 'state': _serialize(b)})}\n\n"
-                break
-            elif kind == "error":
-                yield f"data: {json.dumps({'type': 'error', 'message': a})}\n\n"
-                break
+            while True:
+                kind, a, b = await asyncio.to_thread(q.get)
+                if kind == "progress":
+                    yield f"data: {json.dumps({'type': 'progress', 'node': a})}\n\n"
+                elif kind == "done":
+                    yield f"data: {json.dumps({'type': 'done', 'state': _serialize(b)})}\n\n"
+                    break
+                elif kind == "error":
+                    yield f"data: {json.dumps({'type': 'error', 'message': a})}\n\n"
+                    break
 
     return StreamingResponse(
         stream(),
@@ -337,6 +417,8 @@ async def search(request: Request) -> StreamingResponse:
 
 
 app = Starlette(routes=[
+    Route("/health", health),
     Route("/", homepage),
+    Route("/resolve-track", resolve_track, methods=["POST"]),
     Route("/search", search, methods=["POST"]),
 ])

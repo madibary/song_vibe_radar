@@ -41,9 +41,7 @@ for updates in graph.stream(cast(AgentState, initial_state), stream_mode="update
     for node_name, update in updates.items():
         if update is not None:
             final_state.update(update)
-        if node_name == "validate_reference_song":
-            print("🔍 Validating reference song...")
-        elif node_name == "enrich_reference_song":
+        if node_name == "enrich_reference_song":
             print("📊 Enriching reference song data...")
         elif node_name == "analyze_vibe":
             print("🎵 Generating vibe description...")

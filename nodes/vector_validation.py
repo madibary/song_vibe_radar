@@ -1,6 +1,7 @@
 from state.agent_state import AgentState
 from typings.node_outputs import VectorValidationOutput
-from sentence_transformers import SentenceTransformer
+from langchain_openai import OpenAIEmbeddings
+import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,18 +9,26 @@ logger = logging.getLogger(__name__)
 _embeddings_model = None
 
 
-def _get_embeddings_model():
+def _get_embeddings_model() -> OpenAIEmbeddings:
     global _embeddings_model
     if _embeddings_model is None:
-        _embeddings_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+        _embeddings_model = OpenAIEmbeddings(model="text-embedding-3-small")
     return _embeddings_model
+
+
+def _encode(text: str) -> np.ndarray:
+    return np.array(_get_embeddings_model().embed_query(text))
+
+
+def _cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
 
 
 def validate_by_vectors(state: AgentState) -> VectorValidationOutput:
     reference_track = state["reference_track"]
     first_song_desc = str(reference_track.get("vibe_description"))
     logger.info("First song description: %s", first_song_desc)
-    first_song_vector = _get_embeddings_model().encode(first_song_desc)
+    first_song_vector = _encode(first_song_desc)
 
     highest_song_desc_id = None
     highest_score = 0.0
@@ -35,13 +44,8 @@ def validate_by_vectors(state: AgentState) -> VectorValidationOutput:
                 songs[song_id]["score"] = 0
                 logger.info("No vibe description for %s by %s, skipping vector validation.", song_data.get('name'), song_data.get('artist'))
                 continue
-            embedding = _get_embeddings_model().encode(song_data["vibe_description"])
-            similarity_raw = _get_embeddings_model().similarity(first_song_vector, embedding)
-            try:
-                similarity_val = float(similarity_raw)
-            except Exception:
-                # fallback value if conversion fails
-                similarity_val = 0.0
+            embedding = _encode(song_data["vibe_description"])
+            similarity_val = _cosine_similarity(first_song_vector, embedding)
             songs[song_id]["score"] = similarity_val
             if similarity_val > highest_score:
                 highest_song_desc_id = song_id

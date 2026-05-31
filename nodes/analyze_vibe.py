@@ -7,34 +7,35 @@ from state.subgraph_state import SubgraphState
 from langchain_core.messages import convert_to_messages
 import logging
 from helpers.formatter import parse_content
+from helpers.cache import cache_get
 from models.description_generator import model
 
 logger = logging.getLogger(__name__)
 
 def analyze_recommendation_vibe(state: SubgraphState) -> dict:
     song_data = state["song_data"][0]
-    new_messages = analyze_vibe(song_data, state["messages"])
+    new_messages, from_cache = analyze_vibe(song_data, state["messages"])
     model_response = new_messages[-1]
-    content_str = str(model_response.content)
-    description = parse_content(content_str)
+    description = parse_content(str(model_response.content))
 
     enriched_song_data = song_data.copy()
     enriched_song_data["vibe_description"] = description
+    enriched_song_data["_from_cache"] = from_cache
     return {"song_data": [enriched_song_data], "messages": new_messages, "iterations": state["iterations"] + 1}
+
 
 def analyze_reference_vibe(state: AgentState) -> dict:
     song_data = state["reference_track"]
-    new_messages = analyze_vibe(song_data, state["messages"])
-    last_message = new_messages[-1]
-    content_str = str(last_message.content)
-    description = parse_content(content_str) 
-    
+    new_messages, from_cache = analyze_vibe(song_data, state["messages"])
+    description = parse_content(str(new_messages[-1].content))
+
     enriched_song_data = song_data.copy()
     enriched_song_data["vibe_description"] = description
+    enriched_song_data["_from_cache"] = from_cache
     return {"reference_track": enriched_song_data, "messages": new_messages, "reference_iterations": state["reference_iterations"] + 1}
 
 
-def analyze_vibe(song_data, messages) -> list[HumanMessage | AIMessage | SystemMessage]:
+def analyze_vibe(song_data, messages) -> tuple[list[HumanMessage | AIMessage | SystemMessage], bool]:
     name = song_data["name"]
     artist = song_data["artist"]
     reviews = song_data.get("reviews", "")
@@ -44,12 +45,16 @@ def analyze_vibe(song_data, messages) -> list[HumanMessage | AIMessage | SystemM
     messages = convert_to_messages(messages)
     recent_messages = messages[-6:]
 
-    # if it's the first vibe analysis - provide reviews and lyrics
     if not recent_messages:
+        cached = cache_get(name, artist)
+        if cached:
+            logger.info("Cache hit for %s by %s", name, artist)
+            return [AIMessage(content=cached)], True
+
         user_input = f"Generate a new vibe description. Reviews: {reviews} \nLyrics: {lyrics}"
         new_messages.append(HumanMessage(content=user_input))
         recent_messages = [HumanMessage(content=user_input)]
 
     model_response = get_description(name, artist, reviews, lyrics, recent_messages)
     new_messages.append(model_response)
-    return new_messages
+    return new_messages, False
