@@ -13,9 +13,11 @@ Discover new music that matches the vibe of your favorite tracks!
 ## Demo / User Interface
 
 Search interface + agent progress:
+
 <img src="image-2.png" width="500" />
 
 Results:
+
 <img src="image-1.png" width="500" />
 
 
