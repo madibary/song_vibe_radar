@@ -13,12 +13,11 @@ Discover new music that matches the vibe of your favorite tracks!
 ## Demo / User Interface
 
 Search interface + agent progress:
+<img src="image-2.png" width="500" />
 
-<img src="song_radar_input.png" width="500" />
+Results:
+<img src="image-1.png" width="500" />
 
-Results sample:
-
-<img src="vibe_results.png" width="500" />
 
 ## Features
 
@@ -47,14 +46,7 @@ Results sample:
    pip install -r requirements.txt
    ```
 
-4. Set up environment variables (create a `.env` file):
-   - `GROQ_API_KEY`: API key for Groq (used for vibe description generation).
-   - `OPENROUTER_API_KEY`: API key for OpenRouter (used for evaluation).
-   - `LAST_FM_API_KEY`: API key for Last.fm (used for song recommendations and validation).
-   - `TAVILY_API_KEY`: API key for Tavily (used for web search).
-   - `GENIUS_API_KEY`: API key for Genius (used for lyrics and song data).
-   - `LOG_LEVEL` (optional): Logging level, defaults to "INFO".
-   - `LOG_FILE` (optional): Log file path, defaults to "song_radar.log".
+4. Set up environment variables: copy `.env.example` to `.env` and fill in your keys — the file lists everything required.
 
 ## Usage
 
@@ -129,11 +121,9 @@ Evaluations are returned as structured data containing a score and textual feedb
 
 - **[LangGraph](https://github.com/langchain-ai/langgraph)** — agentic graph orchestration
 - **[LangChain](https://github.com/langchain-ai/langchain)** — LLM abstractions and message handling
-- **[Groq](https://groq.com/)** — fast LLM inference for vibe description generation (Qwen3-32B)
-- **[OpenRouter](https://openrouter.ai/)** — LLM-as-a-judge evaluation (GPT-4o)
-- **[sentence-transformers](https://www.sbert.net/)** — vector embeddings for vibe similarity ranking
-- **[Last.fm API](https://www.last.fm/api)** — song validation and recommendations
-- **[Genius API](https://docs.genius.com/)** — lyrics retrieval
+- **[OpenAI](https://platform.openai.com/)** — vibe description generation, LLM-as-a-judge evaluation, and vector embeddings
+- **[Spotify API](https://developer.spotify.com/)** — track lookup and resolution
+- **[Last.fm API](https://www.last.fm/api)** — song recommendations and tag validation
 - **[Tavily](https://tavily.com/)** — web search for song reviews
 - **[Starlette](https://www.starlette.io/) + [uvicorn](https://www.uvicorn.org/)** — web server with SSE streaming
 - **[LangSmith](https://smith.langchain.com/)** — tracing and observability
