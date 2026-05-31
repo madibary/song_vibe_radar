@@ -49,6 +49,6 @@ def cache_set(name: str, artist: str, value: str) -> None:
         client = _get_client()
         if client is None:
             return
-        client.set(make_key(name, artist), value)
+        client.set(make_key(name, artist), value, ex=60 * 60 * 24 * 3)
     except Exception as e:
         logger.warning("Cache set error: %s", e)
