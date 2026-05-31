@@ -9,7 +9,7 @@ def get_model():
     if _model is None:
         _model = ChatOpenAI(
             model="gpt-4o-mini",
-            temperature=0.6,
+            temperature=1.0,
             max_retries=2,
         )
     return _model
