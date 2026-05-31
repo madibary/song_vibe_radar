@@ -1,43 +1,33 @@
 import logging
 import re
-import os
-import lyricsgenius as genius
+import requests
 
 logger = logging.getLogger(__name__)
 
-_genius_api = None
-
-
-def _get_genius_api():
-    global _genius_api
-    if _genius_api is None:
-        _genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"))
-    return _genius_api
+_LRCLIB_URL = "https://lrclib.net/api/search"
 
 
 def get_track_lyrics(track_name: str, artist_name: str) -> str:
-    """
-    Retrieves the lyrics of a track from Genius API based on the track name and artist name.
-    Returns a string with the lyrics of the track.
-    """
     try:
-        song = _get_genius_api().search_song(track_name, artist_name)
+        response = requests.get(
+            _LRCLIB_URL,
+            params={"q": f"{track_name} {artist_name}"},
+            timeout=15,
+        )
+        response.raise_for_status()
+        results = response.json()
     except Exception as e:
-        logger.exception("Failed to fetch lyrics for %s by %s. Error: %s", track_name, artist_name, e)
+        logger.warning("Failed to fetch lyrics for %s by %s: %s", track_name, artist_name, e)
         return ""
-    
-    if song:
-        lyrics = song.lyrics
-        # Remove any text inside square brackets (e.g., [Chorus], [Intro])
-        lyrics = re.sub(r'\[.*?\]', '', lyrics)
 
-        words_list = lyrics.split()
-        if (len(words_list) > 40):
-            first_40_words = words_list[:40]
-            result_string = " ".join(first_40_words)
-            return result_string
-        return lyrics
-        
-    else:
-        logger.warning("track lyrics not found: %s by %s", track_name, artist_name)
+    if not results:
+        logger.warning("Track lyrics not found: %s by %s", track_name, artist_name)
         return ""
+
+    lyrics = results[0].get("plainLyrics") or ""
+    if not lyrics:
+        return ""
+
+    lyrics = re.sub(r'\[.*?\]', '', lyrics)
+    words = lyrics.split()
+    return " ".join(words[:40]) if len(words) > 40 else lyrics

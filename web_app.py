@@ -254,13 +254,20 @@ async function doSearch() {
   const spotify_url = document.getElementById('spotify_url').value.trim();
   if (!spotify_url) return;
 
+  const res = document.getElementById('results');
+
+  if (!spotify_url.includes('spotify.com/track/')) {
+    res.innerHTML = `<div class="err">❌ Please paste a valid Spotify track link (e.g. open.spotify.com/track/…)</div>`;
+    res.classList.add('show');
+    return;
+  }
+
   const btn = document.getElementById('btn');
   btn.disabled = true; btn.textContent = 'Scanning…';
 
   // reset
   document.querySelectorAll('.step').forEach(s => s.className = 'step');
   const prog = document.getElementById('progress');
-  const res  = document.getElementById('results');
   prog.classList.add('show');
   res.classList.remove('show'); res.innerHTML = '';
 
