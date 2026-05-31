@@ -1,4 +1,5 @@
 import os
+import logging
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import convert_to_messages, AIMessage
@@ -16,6 +17,9 @@ from nodes.song_recommendations import get_song_recommendations
 from nodes.vector_validation import validate_by_vectors
 from nodes.cache_vibe import cache_reference_vibe
 from tools.get_song_tags import get_song_tags
+
+logger = logging.getLogger(__name__)
+
 
 def should_reflect(state: AgentState) -> str:
     if os.getenv("EVALUATION_ENABLED", "").lower() != "true":
@@ -43,7 +47,7 @@ def should_reduce_songs(state: AgentState) -> str:
     # check if the reduced songs aren't empty
     unsorted_songs = state.get("unsorted_songs", {})
     if not unsorted_songs:
-        print ("No recommendations found. Ending graph execution.")
+        logger.info("No recommendations found. Ending graph execution.")
         return "end"
     return "reduce"
 

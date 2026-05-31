@@ -6,7 +6,6 @@ def test_imports():
     """Test that all main modules can be imported."""
     try:
         from graphs.main_graph import graph
-        from nodes.validate_song import validate_song
         from models.description_generator import model
         from helpers.formatter import parse_content
         assert True  # If we get here, imports worked
