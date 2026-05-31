@@ -22,7 +22,6 @@ langgraph-checkpoint==4.0.3
 langgraph-prebuilt==1.0.13
 langgraph-sdk==0.3.14
 langsmith==0.8.1
-lyricsgenius==3.12.1
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
