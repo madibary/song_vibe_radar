@@ -11,7 +11,7 @@ _genius_api = None
 def _get_genius_api():
     global _genius_api
     if _genius_api is None:
-        _genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"), verbose=False)
+        _genius_api = genius.Genius(os.getenv("GENIUS_API_KEY"))
     return _genius_api
 
 
