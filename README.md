@@ -12,6 +12,9 @@ Discover new music that matches the vibe of your favorite tracks!
 
 ## Demo / User Interface
 
+Create your own vibe based playlist here:
+https://songviberadar-production.up.railway.app/
+
 Search interface + agent progress:
 
 <img src="image-2.png" width="500" />
