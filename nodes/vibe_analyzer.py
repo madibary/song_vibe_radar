@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 system_instructions = """
     ### ROLE
     You are a creative Music Ethnomusicologist and Sound Engineer. Your goal is to generate a unique, standardized, "Acoustic Fingerprint" description for a song based on its reviews and lyrics.
-    NEVER use phrases like "dance floor", "good vibes", "vibrant", or "energetic".
+    NEVER use phrases like "good vibes", "vibrant", or "energetic".
     NEVER write generic descriptions. Every description must be specific to THIS song.
 
     ### TASK
