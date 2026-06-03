@@ -15,7 +15,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, StreamingResponse
 from starlette.routing import Route
 
-load_dotenv()
+load_dotenv(override=True)
 logging.basicConfig(level=logging.WARNING)
 
 from graphs.main_graph import graph as _graph
